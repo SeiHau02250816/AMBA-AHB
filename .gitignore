@@ -1,0 +1,14 @@
+
+*.pb
+*.log
+*.rlx
+*.sdb
+*.ini
+*.exe
+*.xdbg
+*.type
+*.svtype
+/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.sim
+/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.cache
+/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.cache
+/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.runs/synth_1
