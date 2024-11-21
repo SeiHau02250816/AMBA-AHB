@@ -1,0 +1,63 @@
+#-----------------------------------------------------------
+# Vivado v2024.1 (64-bit)
+# SW Build 5076996 on Wed May 22 18:37:14 MDT 2024
+# IP Build 5075265 on Wed May 22 21:45:21 MDT 2024
+# SharedData Build 5076995 on Wed May 22 18:29:18 MDT 2024
+# Start of session at: Thu Nov 21 17:22:52 2024
+# Process ID: 73188
+# Current directory: C:/Teo Sei Hau/Project/Git/AMBA-AHB/AMBA_AHB_SVTB_Vivado
+# Command line: vivado.exe -gui_launcher_event rodinguilauncherevent66368 C:\Teo Sei Hau\Project\Git\AMBA-AHB\AMBA_AHB_SVTB_Vivado\AMBA_AHB_SVTB_Vivado.xpr
+# Log file: C:/Teo Sei Hau/Project/Git/AMBA-AHB/AMBA_AHB_SVTB_Vivado/vivado.log
+# Journal file: C:/Teo Sei Hau/Project/Git/AMBA-AHB/AMBA_AHB_SVTB_Vivado\vivado.jou
+# Running On        :SeiHau
+# Platform          :Windows Server 2016 or Windows 10
+# Operating System  :22631
+# Processor Detail  :12th Gen Intel(R) Core(TM) i9-12900H
+# CPU Frequency     :2918 MHz
+# CPU Physical cores:14
+# CPU Logical cores :20
+# Host memory       :16893 MB
+# Swap memory       :11896 MB
+# Total Virtual     :28790 MB
+# Available Virtual :11035 MB
+#-----------------------------------------------------------
+start_gui
+open_project {C:/Teo Sei Hau/Project/Git/AMBA-AHB/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.xpr}
+update_compile_order -fileset sources_1
+set_property SOURCE_SET sources_1 [get_filesets sim_1]
+close [ open {C:/Teo Sei Hau/Project/Git/AMBA-AHB/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.srcs/sim_1/new/ahb_gen.sv} w ]
+add_files -fileset sim_1 {{C:/Teo Sei Hau/Project/Git/AMBA-AHB/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.srcs/sim_1/new/ahb_gen.sv}}
+update_compile_order -fileset sim_1
+set_property SOURCE_SET sources_1 [get_filesets sim_1]
+close [ open {C:/Teo Sei Hau/Project/Git/AMBA-AHB/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.srcs/sim_1/new/ahb_drv.sv} w ]
+add_files -fileset sim_1 {{C:/Teo Sei Hau/Project/Git/AMBA-AHB/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.srcs/sim_1/new/ahb_drv.sv}}
+update_compile_order -fileset sim_1
+set_property SOURCE_SET sources_1 [get_filesets sim_1]
+close [ open {C:/Teo Sei Hau/Project/Git/AMBA-AHB/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.srcs/sim_1/new/ahb_mon.sv} w ]
+add_files -fileset sim_1 {{C:/Teo Sei Hau/Project/Git/AMBA-AHB/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.srcs/sim_1/new/ahb_mon.sv}}
+update_compile_order -fileset sim_1
+set_property SOURCE_SET sources_1 [get_filesets sim_1]
+close [ open {C:/Teo Sei Hau/Project/Git/AMBA-AHB/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.srcs/sim_1/new/ahb_sb.sv} w ]
+add_files -fileset sim_1 {{C:/Teo Sei Hau/Project/Git/AMBA-AHB/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.srcs/sim_1/new/ahb_sb.sv}}
+update_compile_order -fileset sim_1
+set_property SOURCE_SET sources_1 [get_filesets sim_1]
+close [ open {C:/Teo Sei Hau/Project/Git/AMBA-AHB/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.srcs/sim_1/new/ahb_env.sv} w ]
+add_files -fileset sim_1 {{C:/Teo Sei Hau/Project/Git/AMBA-AHB/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.srcs/sim_1/new/ahb_env.sv}}
+update_compile_order -fileset sim_1
+set_property SOURCE_SET sources_1 [get_filesets sim_1]
+close [ open {C:/Teo Sei Hau/Project/Git/AMBA-AHB/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.srcs/sim_1/new/testing_01.sv} w ]
+add_files -fileset sim_1 {{C:/Teo Sei Hau/Project/Git/AMBA-AHB/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.srcs/sim_1/new/testing_01.sv}}
+update_compile_order -fileset sim_1
+export_ip_user_files -of_objects  [get_files {{C:/Teo Sei Hau/Project/Git/AMBA-AHB/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.srcs/sim_1/new/testing_01.sv}}] -no_script -reset -force -quiet
+remove_files  -fileset sim_1 {{C:/Teo Sei Hau/Project/Git/AMBA-AHB/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.srcs/sim_1/new/testing_01.sv}}
+file delete -force {C:/Teo Sei Hau/Project/Git/AMBA-AHB/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.srcs/sim_1/new/testing_01.sv}
+set_property SOURCE_SET sources_1 [get_filesets sim_1]
+close [ open {C:/Teo Sei Hau/Project/Git/AMBA-AHB/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.srcs/sim_1/new/testing01.sv} w ]
+add_files -fileset sim_1 {{C:/Teo Sei Hau/Project/Git/AMBA-AHB/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.srcs/sim_1/new/testing01.sv}}
+update_compile_order -fileset sim_1
+set_property SOURCE_SET sources_1 [get_filesets sim_1]
+close [ open {C:/Teo Sei Hau/Project/Git/AMBA-AHB/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.srcs/sim_1/new/ahb_tb_top.sv} w ]
+add_files -fileset sim_1 {{C:/Teo Sei Hau/Project/Git/AMBA-AHB/AMBA_AHB_SVTB_Vivado/AMBA_AHB_SVTB_Vivado.srcs/sim_1/new/ahb_tb_top.sv}}
+update_compile_order -fileset sim_1
+update_compile_order -fileset sim_1
+launch_simulation
