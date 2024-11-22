@@ -41,10 +41,6 @@ class ahb_txn;
         hburst inside {3'b000, 3'b001, 3'b010}; // Single, Incr, Wrap
     }
 
-    constraint valid_trans {
-        htrans inside {2'b00, 2'b10}; // IDLE, NONSEQ
-    }
-
     // Deep copy method (similar to APB transaction class)
     function ahb_txn clone();
         ahb_txn new_txn = new();
