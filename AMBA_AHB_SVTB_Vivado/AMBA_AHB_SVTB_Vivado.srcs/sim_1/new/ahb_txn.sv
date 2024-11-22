@@ -30,7 +30,7 @@ class ahb_txn;
 
     // Constraints (example constraints, adjust as needed)
     constraint valid_addr {
-        haddr inside {[32'h0000_0000 : 32'h0FFF_FFFF]};
+        haddr <= 32'hbfff_ffff;
     }
 
     constraint valid_size {

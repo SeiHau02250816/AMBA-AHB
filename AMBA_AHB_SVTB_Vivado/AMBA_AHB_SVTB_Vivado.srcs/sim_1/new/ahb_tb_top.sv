@@ -16,6 +16,7 @@
 //    v1.0 - Initial version
 //////////////////////////////////////////////////////////////////////////////////
 
+`include "ahb_intf.sv"
 `include "ahb_txn.sv"
 `include "testing01.sv"
 `include "ahb_env.sv"
@@ -25,12 +26,15 @@
 `include "ahb_sb.sv"
 
 module ahb_tb_top();
+    // Test instantiations
     testing01 test_01_h;
 
     logic hclk, hresetn;
     
+    // Interface instantiation
     ahb_intf intf(hclk, hresetn);
     
+    // AHB DUT instantiation
     ahb_top dut (
         .hclk        (intf.hclk),
         .hresetn     (intf.hresetn),

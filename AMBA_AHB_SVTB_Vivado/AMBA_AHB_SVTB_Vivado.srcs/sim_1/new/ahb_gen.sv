@@ -170,7 +170,7 @@ class ahb_gen;
         write_txn.randomize() with {
             hwrite == 1'b1;      // Write transfer
         };
-        addr = write_setup_txn.haddr;
+        addr = write_txn.haddr;
         g2d_mb.put(write_txn);
         
         // Read transaction
