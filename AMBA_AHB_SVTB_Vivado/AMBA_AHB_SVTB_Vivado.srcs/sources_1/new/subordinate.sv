@@ -21,6 +21,12 @@
 //
 //////////////////////////////////////////////////////////////////////////////////
 
+// Enum type for hwrite signal
+typedef enum logic {
+    READ  = 1'b0,    // Read operation
+    WRITE = 1'b1     // Write operation
+} hwrite_t;
+
 module subordinate (
     /* Input ports */
     // Global signals
@@ -32,7 +38,7 @@ module subordinate (
 
     // Address and control
     input  logic [31:0] haddr,     // Address bus
-    input  logic        hwrite,    // Write enable
+    input  hwrite_t     hwrite,    // Write enable
     input  logic [2:0]  hsize,     // Transfer size (ignored in this example)
     input  logic [2:0]  hburst,    // Burst type (ignored in this example)
     input  logic [3:0]  hprot,     // Protection type (ignored in this example)
@@ -81,7 +87,7 @@ module subordinate (
         rdata_n = rdata;
         
         if (hselx) begin
-            if (hwrite) begin
+            if (hwrite == WRITE) begin
                 // Write operation
                 memory[haddr[31:2]] = hwdata;  // Word-aligned addressing
             end
