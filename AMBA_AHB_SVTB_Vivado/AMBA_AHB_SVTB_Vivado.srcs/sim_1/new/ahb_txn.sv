@@ -33,6 +33,7 @@ class ahb_txn;
         haddr <= 32'hbfff_ffff;
     }
 
+    // For 32-bits data bus, hsize must be <= 3'b010
     constraint valid_size {
         hsize inside {3'b000, 3'b001, 3'b010}; // Byte, Halfword, Word
     }

@@ -13,23 +13,19 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="26.761 ns"></ZoomStartTime>
-      <ZoomEndTime time="97.068 ns"></ZoomEndTime>
-      <Cursor1Time time="65.000 ns"></Cursor1Time>
+      <ZoomStartTime time="12.174 ns"></ZoomStartTime>
+      <ZoomEndTime time="279.925 ns"></ZoomEndTime>
+      <Cursor1Time time="85.000 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="212"></NameColumnWidth>
+      <NameColumnWidth column_width="206"></NameColumnWidth>
       <ValueColumnWidth column_width="90"></ValueColumnWidth>
    </column_width_setting>
    <WVObjectSize size="7" />
    <wvobject fp_name="group152" type="group">
       <obj_property name="label">Manager Inputs</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <wvobject fp_name="/ahb_tb_top/dut/u_decoder/haddr" type="array">
-         <obj_property name="ElementShortName">haddr[31:0]</obj_property>
-         <obj_property name="ObjectShortName">haddr[31:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
+      <obj_property name="isExpanded"></obj_property>
       <wvobject fp_name="/ahb_tb_top/hclk" type="logic">
          <obj_property name="ElementShortName">hclk</obj_property>
          <obj_property name="ObjectShortName">hclk</obj_property>
@@ -106,7 +102,7 @@
             <obj_property name="ElementShortName">hselx</obj_property>
             <obj_property name="ObjectShortName">hselx</obj_property>
          </wvobject>
-         <wvobject fp_name="/ahb_tb_top/dut/u_subordinate1/hwrite" type="logic">
+         <wvobject fp_name="/ahb_tb_top/dut/u_subordinate1/hwrite" type="other">
             <obj_property name="ElementShortName">hwrite</obj_property>
             <obj_property name="ObjectShortName">hwrite</obj_property>
          </wvobject>
@@ -159,7 +155,6 @@
    <wvobject fp_name="group183" type="group">
       <obj_property name="label">Subordinate2</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="isExpanded"></obj_property>
       <wvobject fp_name="group186" type="group">
          <obj_property name="label">Inputs</obj_property>
          <obj_property name="DisplayName">label</obj_property>
@@ -180,7 +175,7 @@
             <obj_property name="ElementShortName">haddr[31:0]</obj_property>
             <obj_property name="ObjectShortName">haddr[31:0]</obj_property>
          </wvobject>
-         <wvobject fp_name="/ahb_tb_top/dut/u_subordinate2/hwrite" type="logic">
+         <wvobject fp_name="/ahb_tb_top/dut/u_subordinate2/hwrite" type="other">
             <obj_property name="ElementShortName">hwrite</obj_property>
             <obj_property name="ObjectShortName">hwrite</obj_property>
          </wvobject>
@@ -249,7 +244,7 @@
             <obj_property name="ElementShortName">haddr[31:0]</obj_property>
             <obj_property name="ObjectShortName">haddr[31:0]</obj_property>
          </wvobject>
-         <wvobject fp_name="/ahb_tb_top/dut/u_subordinate3/hwrite" type="logic">
+         <wvobject fp_name="/ahb_tb_top/dut/u_subordinate3/hwrite" type="other">
             <obj_property name="ElementShortName">hwrite</obj_property>
             <obj_property name="ObjectShortName">hwrite</obj_property>
          </wvobject>
@@ -322,6 +317,7 @@
    <wvobject fp_name="group153" type="group">
       <obj_property name="label">Manager Outputs</obj_property>
       <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
       <wvobject fp_name="/ahb_tb_top/intf/hreadyout" type="logic">
          <obj_property name="ElementShortName">hreadyout</obj_property>
          <obj_property name="ObjectShortName">hreadyout</obj_property>

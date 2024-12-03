@@ -8,6 +8,7 @@
 // Revision:
 //    v1.0: Created initial version with descriptions.
 //    v1.1: Added AHB Basic Transfers feature.
+//    v1.2: Added HSIZE handling for different transfer sizes (byte, halfword, word)
 // 
 // Description:
 //    This module represents a subordinate device on the AHB bus. It provides the necessary
@@ -18,6 +19,7 @@
 //    - 2^30 words memory size
 //    - Direct input signal handling
 //    - Internal registers for output signals
+//    - HSIZE handling for byte, halfword, and word transfers
 //
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -26,6 +28,13 @@ typedef enum logic {
     READ  = 1'b0,    // Read operation
     WRITE = 1'b1     // Write operation
 } hwrite_t;
+
+// Enum type for transfer size
+typedef enum logic [2:0] {
+    BYTE     = 3'b000,  // 8-bit transfer
+    HALFWORD = 3'b001,  // 16-bit transfer
+    WORD     = 3'b010   // 32-bit transfer
+} hsize_t;
 
 module subordinate (
     /* Input ports */
@@ -39,7 +48,7 @@ module subordinate (
     // Address and control
     input  logic [31:0] haddr,     // Address bus
     input  hwrite_t     hwrite,    // Write enable
-    input  logic [2:0]  hsize,     // Transfer size (ignored in this example)
+    input  hsize_t      hsize,     // Transfer size
     input  logic [2:0]  hburst,    // Burst type (ignored in this example)
     input  logic [3:0]  hprot,     // Protection type (ignored in this example)
     input  logic [1:0]  htrans,    // Transaction type (ignored in this example)
@@ -88,12 +97,37 @@ module subordinate (
         
         if (hselx) begin
             if (hwrite == WRITE) begin
-                // Write operation
-                memory[haddr[31:2]] = hwdata;  // Word-aligned addressing
+                // Write operation based on transfer size
+                case(hsize)
+                    BYTE: begin
+                        memory[haddr[29:0]][7:0] = hwdata[7:0];
+                    end
+                    HALFWORD: begin
+                        memory[haddr[29:0]][15:0] = hwdata[15:0];
+                    end
+                    WORD: begin
+                        memory[haddr[29:0]] = hwdata;
+                    end
+                    default: ; // Invalid size, do nothing
+                endcase
             end
             else begin
-                // Read operation
-                rdata_n = memory[haddr[31:2]];  // Word-aligned addressing
+                // Read operation based on transfer size
+                logic [31:0] mem_data;  // Temporary variable for memory read
+                mem_data = memory[haddr[29:0]];  // Read memory first
+                
+                case(hsize)
+                    BYTE: begin
+                        rdata_n = {24'b0, mem_data[7:0]};
+                    end
+                    HALFWORD: begin
+                        rdata_n = {16'b0, mem_data[15:0]};
+                    end
+                    WORD: begin
+                        rdata_n = mem_data;
+                    end
+                    default: rdata_n = 32'h0; // Invalid size
+                endcase
             end
         end
     end

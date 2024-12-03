@@ -68,7 +68,6 @@ class ahb_mon;
             txn_h = new();
             $display("Task sample :: ahb_mon");
             
-            @(vintf.mon_cb);
             ahb_sample();
             ahb_log(); // Log the transaction after sampling
         end
@@ -86,7 +85,7 @@ class ahb_mon;
         txn_h.hmastlock = vintf.mon_cb.hmastlock;
         txn_h.hwdata = vintf.mon_cb.hwdata;
         
-        #1;  // Small delay to capture stable signals
+        @(vintf.mon_cb);
         
         // Capture slave response signals
         txn_h.hreadyout = vintf.mon_cb.hreadyout;
@@ -99,37 +98,34 @@ class ahb_mon;
 
     // Log the transaction details
     task ahb_log;
-        // Log the transaction for active transfers
-        if (txn_h.htrans != 2'b00) begin
-            string operation;
-            string wdata_str;
-            string rdata_str;
-            string trans_str;
-            
-            // Determine operation type
-            if (txn_h.hwrite) begin
-                operation = "WRITE";
-                rdata_str = "0xXXXXXXXX";  // Unknown data representation
-                $sformat(wdata_str, "0x%08h", txn_h.hwdata);  // Pad write data with leading zeros
-            end else begin
-                operation = "READ ";
-                wdata_str = "0xXXXXXXXX";  // Unknown data representation
-                $sformat(rdata_str, "0x%08h", txn_h.hrdata);  // Pad read data with leading zeros
-            end
-            
-            // Convert transfer type to string
-            case(txn_h.htrans)
-                2'b00:   trans_str = "IDLE";
-                2'b01:   trans_str = "BUSY";
-                2'b10:   trans_str = "NONSEQ";
-                2'b11:   trans_str = "SEQ";
-                default: trans_str = "UNDEF";
-            endcase
-            
-            // Log the transaction details in right-aligned, table format with padded values
-            $fwrite(log_file, "%12t | %10s | 0x%08h | %10d | %10d | %10d | %10s | %10s | %10s | %10d\n",
-                    $time, operation, txn_h.haddr, txn_h.hwrite, txn_h.hsize, 
-                    txn_h.hburst, trans_str, wdata_str, rdata_str, txn_h.hresp);
+        string operation;
+        string wdata_str;
+        string rdata_str;
+        string trans_str;
+        
+        // Determine operation type
+        if (txn_h.hwrite) begin
+            operation = "WRITE";
+            rdata_str = "0xXXXXXXXX"; 
+            $sformat(wdata_str, "0x%08h", txn_h.hwdata);  // Pad write data with leading zeros
+        end else begin
+            operation = "READ ";
+            wdata_str = "0xXXXXXXXX"; 
+            $sformat(rdata_str, "0x%08h", txn_h.hrdata);  // Pad read data with leading zeros
         end
+        
+        // Convert transfer type to string
+        case(txn_h.htrans)
+            2'b00:   trans_str = "IDLE";
+            2'b01:   trans_str = "BUSY";
+            2'b10:   trans_str = "NONSEQ";
+            2'b11:   trans_str = "SEQ";
+            default: trans_str = "UNDEF";
+        endcase
+        
+        // Log the transaction details in right-aligned, table format with padded values
+        $fwrite(log_file, "%12t | %10s | 0x%08h | %10d | %10d | %10d | %10s | %10s | %10s | %10d\n",
+                $time, operation, txn_h.haddr, txn_h.hwrite, txn_h.hsize, 
+                txn_h.hburst, trans_str, wdata_str, rdata_str, txn_h.hresp);
     endtask
 endclass

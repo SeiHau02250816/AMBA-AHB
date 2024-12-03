@@ -48,7 +48,7 @@ class ahb_drv;
             
             // Get transaction from mailbox
             g2d_mb.get(txn_h);
-            txn_h.print("driver");
+            // txn_h.print("driver");
             
             // Drive the AHB transaction
             ahb_drive();
