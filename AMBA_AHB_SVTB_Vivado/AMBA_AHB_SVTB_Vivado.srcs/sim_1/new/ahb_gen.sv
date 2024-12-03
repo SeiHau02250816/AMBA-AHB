@@ -25,6 +25,16 @@ class ahb_gen;
     ahb_txn write_txn, idle_txn;
     ahb_txn read_setup_txn, read_txn;
 
+    // Class to encapsulate randomizable properties
+    class txn_properties;
+        rand int unsigned haddr_value;
+        rand logic [2:0] hsize_value;
+
+        function new();
+            // Constructor
+        endfunction
+    endclass
+
     // Constructor
     function new(mailbox g2d_mb);
         this.g2d_mb = g2d_mb;
@@ -52,146 +62,46 @@ class ahb_gen;
         end
     endfunction
 
-    // Task for generating consecutive transactions
-//    task gen_consecutive();
-//        int unsigned addr_array[]; // Array to store randomized addresses
-        
-//        // Step 1: Initialize the size of addr_array
-//        addr_array = new[num_txns];
-
-//        // Step 2: Generate consecutive write transactions
-//        for (int i = 0; i < num_txns; i++) begin
-//            // Write transactions
-//            write_setup_txn = new();
-//            write_setup_txn.randomize() with {
-//                htrans == 2'b10;     // NONSEQ transfer
-//                hwrite == 1'b1;      // Write transfer
-//                hburst == 3'b000;    // Single burst
-//                hsize inside {3'b010}; // Word transfer
-//                haddr inside {[32'h0000_0000 : 32'h0FFF_FFFF]};
-//            };
-//            addr_array[i] = write_setup_txn.haddr; 
-//            g2d_mb.put(write_setup_txn);
-
-//            // Complete write transaction
-//            write_txn = write_setup_txn.clone();
-//            write_txn.htrans = 2'b00; // IDLE after transfer
-//            g2d_mb.put(write_txn);
-
-//            // Idle transaction
-//            idle_txn = new();
-//            idle_txn.randomize() with {
-//                htrans == 2'b00;     // IDLE
-//                haddr == addr_array[i];
-//            };
-//            g2d_mb.put(idle_txn);
-//        end
-
-//        // Step 3: Generate consecutive read transactions
-//        for (int i = 0; i < num_txns; i++) begin
-//            // Read transactions
-//            read_setup_txn = new();
-//            read_setup_txn.randomize() with {
-//                htrans == 2'b10;     // NONSEQ transfer
-//                hwrite == 1'b0;      // Read transfer
-//                hburst == 3'b000;    // Single burst
-//                hsize inside {3'b010}; // Word transfer
-//                haddr == addr_array[i]; // Use pre-randomized address
-//            };
-//            g2d_mb.put(read_setup_txn);
-
-//            // Complete read transaction
-//            read_txn = read_setup_txn.clone();
-//            read_txn.htrans = 2'b00; // IDLE after transfer
-//            g2d_mb.put(read_txn);
-
-//            // Idle transaction
-//            idle_txn = new();
-//            idle_txn.randomize() with {
-//                htrans == 2'b00;     // IDLE
-//                haddr == addr_array[i];
-//            };
-//            g2d_mb.put(idle_txn);
-//        end
-//    endtask
-
-    // Task for generating non-consecutive transactions (alternating)
-//    task gen_non_consecutive();
-//        int unsigned addr;
-//        for (int i = 0; i < num_txns; i++) begin
-//            // Write transactions
-//            write_setup_txn = new();
-//            write_setup_txn.randomize() with {
-//                htrans == 2'b10;     // NONSEQ transfer
-//                hwrite == 1'b1;      // Write transfer
-//                hburst == 3'b000;    // Single burst
-//                hsize inside {3'b010}; // Word transfer
-//                haddr inside {[32'h0000_0000 : 32'h0FFF_FFFF]};
-//            };
-//            addr = write_setup_txn.haddr;
-//            g2d_mb.put(write_setup_txn);
-
-//            // Complete write transaction
-//            write_txn = write_setup_txn.clone();
-//            write_txn.htrans = 2'b00; // IDLE after transfer
-//            g2d_mb.put(write_txn);
-
-//            // Read transactions
-//            read_setup_txn = new();
-//            read_setup_txn.randomize() with {
-//                htrans == 2'b10;     // NONSEQ transfer
-//                hwrite == 1'b0;      // Read transfer
-//                hburst == 3'b000;    // Single burst
-//                hsize inside {3'b010}; // Word transfer
-//                haddr == addr;
-//            };
-//            g2d_mb.put(read_setup_txn);
-
-//            // Complete read transaction
-//            read_txn = read_setup_txn.clone();
-//            read_txn.htrans = 2'b00; // IDLE after transfer
-//            g2d_mb.put(read_txn);
-
-//            // Idle transaction
-//            idle_txn = new();
-//            idle_txn.randomize() with {
-//                htrans == 2'b00;     // IDLE
-//                haddr == addr;
-//            };
-//            g2d_mb.put(idle_txn);
-//        end
-//    endtask
-
     task gen_single();
-        int unsigned addr;
+        txn_properties props = new();
+        
+        // Randomize properties
+        assert(props.randomize() with {
+            props.hsize_value inside {3'b000, 3'b001, 3'b010};  // BYTE, HALFWORD, WORD
+            props.haddr_value inside {[32'h0000_0000 : 32'h0FFF_FFFF]};  // Address range
+        }) else $fatal(1, "Failed to randomize transaction properties");
         
         // Write transaction
         write_txn = new();
         write_txn.randomize() with {
             hwrite == 1'b1;      // Write transfer
+            hsize == props.hsize_value; // Use the same randomized hsize
+            haddr == props.haddr_value; // Use the same randomized address
         };
-        addr = write_txn.haddr;
         g2d_mb.put(write_txn);
         
         // Read transaction
         read_txn = new();
         read_txn.randomize() with {
             hwrite == 1'b0;      // Read transfer
-            haddr  == addr;      // Read from the same address
+            haddr  == props.haddr_value; // Read from the same address
+            hsize == props.hsize_value; // Use the same randomized hsize
         };
         g2d_mb.put(read_txn);
     endtask: gen_single
 
+    // Task to generate non-consecutive transactions
+    task gen_non_consecutive();
+        for (int i = 0; i < this.num_txns; i++) begin
+            gen_single();
+        end
+    endtask: gen_non_consecutive
+    
     // Main generation task
     task gen;
         #30;
         $display("Task generate :: ahb_txn_gen with %0d transaction(s), CONSECUTIVE=%0d", num_txns, consecutive);
         
-        gen_single();
-//        if (consecutive == 1) begin
-//            gen_consecutive();
-//        end else begin
-//            gen_non_consecutive();
-//        end
+        gen_non_consecutive();
     endtask
 endclass

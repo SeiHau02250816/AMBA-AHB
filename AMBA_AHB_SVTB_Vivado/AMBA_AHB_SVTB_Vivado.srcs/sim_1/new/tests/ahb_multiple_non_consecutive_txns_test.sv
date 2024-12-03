@@ -2,26 +2,35 @@
 // Engineer: SeiHau Teo
 // 
 // Create Date: 21.11.2024 
-// Design Name: ahb_single_write_single_read_test
-// Module Name: testing01
+// Design Name: ahb_multiple_non_consecutive_txns_test
+// Module Name: ahb_multiple_non_consecutive_txns_test
 // Project Name: AHB SVTB
 // 
 // Description:
-//    AHB Testbench - Single Write/Single Read Test
-//    - Configures environment for a single write and read transaction
-//    - Creates configuration file with transaction count
+//    AHB Testbench - Multiple Non-Consecutive Transactions Test
+//    - Configures environment for a random number of transactions
+//    - Creates configuration file with randomized transaction count (10 to 20)
 //    - Sets up AHB environment and runs main test sequence
 //
 // Revision:
 //    v1.0 - Initial implementation 
 //////////////////////////////////////////////////////////////////////////////////
 
-class testing01;
+class ahb_multiple_non_consecutive_txns_test;
     // Virtual interface for AHB signals
     virtual ahb_intf vintf;
     
     // AHB environment instance
     ahb_env ahb_env_h;
+
+    // Class to encapsulate randomizable properties
+    class txn_config;
+        rand int num_txns;
+
+        function new();
+            // Constructor
+        endfunction
+    endclass
 
     // Constructor
     function new(virtual ahb_intf vintf);
@@ -38,14 +47,19 @@ class testing01;
     // Write configuration to file
     function void write_config_file();
         int file;
-        int num_txns = 1;  // Set number of transactions to 1 for single write + single read
+        txn_config ahb_config = new();
+
+        // Randomize number of transactions between 10 and 20
+        assert(ahb_config.randomize() with {
+            ahb_config.num_txns inside {[10:20]};
+        }) else $fatal("Failed to randomize num_txns");
 
         file = $fopen("ahb_config.cfg", "w");
         if (file) begin
-            $fdisplay(file, "NUM_OF_TXN=%0d", num_txns);
+            $fdisplay(file, "NUM_OF_TXN=%0d", ahb_config.num_txns);
             $fclose(file);
             $display("Configuration file written successfully.");
-            $display("Number of transactions = %0d.", num_txns);
+            $display("Number of transactions = %0d.", ahb_config.num_txns);
         end else begin
             $error("Error: Could not create configuration file.");
         end
@@ -53,7 +67,7 @@ class testing01;
     
     // Main test execution task
     task main;
-        $display("Task main :: testing01");
+        $display("Task main :: ahb_multiple_non_consecutive_txns_test");
         ahb_env_h.main();
     endtask
 endclass

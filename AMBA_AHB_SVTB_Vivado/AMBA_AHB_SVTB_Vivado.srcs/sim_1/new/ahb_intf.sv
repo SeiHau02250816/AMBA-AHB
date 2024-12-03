@@ -62,7 +62,7 @@ interface ahb_intf(
     
     // Monitor clocking block (captures all signals)
     clocking mon_cb @(posedge hclk);
-        default input #2 output #1;  // Longer input delay for stability
+        default input #1 output #1;  // Longer input delay for stability
         
         // All monitored signals
         input hclk;
