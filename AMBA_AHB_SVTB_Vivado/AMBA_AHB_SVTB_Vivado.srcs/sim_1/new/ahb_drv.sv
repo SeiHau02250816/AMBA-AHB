@@ -66,6 +66,7 @@ class ahb_drv;
         vintf.drv_cb.htrans <= txn_h.htrans;
         vintf.drv_cb.hmastlock <= txn_h.hmastlock;
         vintf.drv_cb.hwdata <= txn_h.hwdata;
+        vintf.drv_cb.hwstrb <= txn_h.hwstrb;
         
         // Wait for slave to be ready
         wait(vintf.drv_cb.hreadyout);

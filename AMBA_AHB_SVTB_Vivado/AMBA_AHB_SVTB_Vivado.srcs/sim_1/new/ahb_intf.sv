@@ -17,7 +17,7 @@
 //
 // Key Features:
 //    - Global signals: hclk, hresetn
-//    - Master signals: haddr, hwrite, hsize, hburst, hprot, htrans, hmastlock, hwdata
+//    - Master signals: haddr, hwrite, hsize, hburst, hprot, htrans, hmastlock, hwdata, hwstrb
 //    - Slave signals: hreadyout, hresp, hrdata
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -34,6 +34,7 @@ interface ahb_intf(
     logic [1:0]  htrans;    // Transfer type
     logic        hmastlock; // Locked transfer
     logic [31:0] hwdata;    // Write data bus
+    logic [3:0]  hwstrb;    // Write strobe
 
     // Slave response signals
     logic        hreadyout; // Transfer complete
@@ -53,6 +54,7 @@ interface ahb_intf(
         output htrans;
         output hmastlock;
         output hwdata;
+        output hwstrb;
         
         // Inputs to testbench
         input  hreadyout;
@@ -75,6 +77,7 @@ interface ahb_intf(
         input htrans;
         input hmastlock;
         input hwdata;
+        input hwstrb;
         input hreadyout;
         input hresp;
         input hrdata;

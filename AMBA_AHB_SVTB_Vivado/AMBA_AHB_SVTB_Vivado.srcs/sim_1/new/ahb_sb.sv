@@ -24,6 +24,9 @@
 //
 // Revision:
 //    v1.0 - Initial implementation of AHB scoreboard.
+//    v1.1: Added AHB Basic Transfers feature.
+//    v1.2: Added HSIZE handling for different transfer sizes (byte, halfword, word)
+//    v1.3: Updated ref_model task to handle write transactions using hwstrb signal
 //////////////////////////////////////////////////////////////////////////////////
 
 class ahb_sb;
@@ -58,14 +61,13 @@ class ahb_sb;
     
     // Reference model for tracking writes and preparing reads
     task ref_model;
-        // Handle write transactions
+        // Handle write transactions with write strobe
         if (txn_h.hwrite) begin
-            case (txn_h.hsize)
-                3'b000: mem[txn_h.haddr][7:0] = txn_h.hwdata[7:0];    // BYTE
-                3'b001: mem[txn_h.haddr][15:0] = txn_h.hwdata[15:0];  // HALFWORD
-                3'b010: mem[txn_h.haddr] = txn_h.hwdata;              // WORD
-                default: ; // Invalid size, do nothing
-            endcase
+            for (int i = 0; i < 4; i++) begin
+                if (txn_h.hwstrb[i]) begin
+                    mem[txn_h.haddr][8*i +: 8] = txn_h.hwdata[8*i +: 8];
+                end
+            end
         end
         
         // Prepare read data for read transactions
@@ -93,9 +95,6 @@ class ahb_sb;
             endcase
             
             // Debugging statements to log values before comparison
-            $display($time, "[DEBUG] addr = %0h, expected_data = %0h, rdata = %0h, txn_h.hrdata = %0h", 
-                     txn_h.haddr, expected_data, rdata, txn_h.hrdata);
-
             if (rdata === expected_data) begin
                 $display($time, "[SCB-PASS] addr = %0h, \t expected data = %0h, actual data = %0h", 
                          txn_h.haddr, rdata, txn_h.hrdata);

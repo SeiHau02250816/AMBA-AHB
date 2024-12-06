@@ -22,6 +22,7 @@ class ahb_txn;
     rand logic [1:0]  htrans;    // Transfer type
     rand logic        hmastlock; // Locked transfer
     rand logic [31:0] hwdata;    // Write data bus
+    rand logic [3:0]  hwstrb;    // Write strobe
 
     // Response signals (not randomized)
     logic        hreadyout; // Transfer complete
@@ -38,8 +39,12 @@ class ahb_txn;
         hsize inside {3'b000, 3'b001, 3'b010}; // Byte, Halfword, Word
     }
 
-    constraint valid_burst {
-        hburst inside {3'b000, 3'b001, 3'b010}; // Single, Incr, Wrap
+    constraint valid_hwstrb {
+        solve hsize before hwstrb;
+
+        if (hsize == 3'b000) hwstrb <= 4'b0001; // BYTE
+        else if (hsize == 3'b001) hwstrb <= 4'b0011; // HALFWORD
+        else if (hsize == 3'b010) hwstrb <= 4'b1111; // WORD
     }
 
     // Deep copy method (similar to APB transaction class)
@@ -54,6 +59,7 @@ class ahb_txn;
         new_txn.htrans    = this.htrans;
         new_txn.hmastlock = this.hmastlock;
         new_txn.hwdata    = this.hwdata;
+        new_txn.hwstrb    = this.hwstrb;
         
         new_txn.hreadyout = this.hreadyout;
         new_txn.hresp     = this.hresp;
@@ -73,6 +79,7 @@ class ahb_txn;
         $display("  Transfer    : %0b", htrans);
         $display("  Locked      : %0b", hmastlock);
         $display("  Write Data  : 0x%0h", hwdata);
+        $display("  Write Strobe: %0b", hwstrb);
         $display("  Ready Out   : %0b", hreadyout);
         $display("  Response    : %0b", hresp);
         $display("  Read Data   : 0x%0h", hrdata);

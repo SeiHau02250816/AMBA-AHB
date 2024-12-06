@@ -21,15 +21,23 @@
 `include "ahb_env.sv"
 `include "ahb_drv.sv"
 `include "tests/ahb_single_write_single_read_test.sv"
+`include "tests/ahb_multiple_non_consecutive_txns_test.sv"
+`include "tests/write_strobe/ahb_full_word_write_test.sv"
+`include "tests/write_strobe/ahb_sparse_write_test.sv"
+`include "tests/write_strobe/ahb_no_write_test.sv"
+`include "tests/write_strobe/ahb_halfword_strobe_test.sv"
 `include "ahb_gen.sv"
 `include "ahb_mon.sv"
 `include "ahb_sb.sv"
-`include "tests/ahb_multiple_non_consecutive_txns_test.sv"
 
 module ahb_tb_top();
     // Test instantiations
     ahb_single_write_single_read_test test_01_h;
     ahb_multiple_non_consecutive_txns_test test_02_h;
+    ahb_full_word_write_test test_03_h;
+    ahb_sparse_write_test test_04_h;
+    ahb_no_write_test test_05_h;
+    ahb_halfword_strobe_test test_06_h;
 
     logic hclk, hresetn;
     
@@ -50,7 +58,8 @@ module ahb_tb_top();
         .hwdata      (intf.hwdata),
         .hreadyout   (intf.hreadyout),
         .hresp       (intf.hresp),
-        .hrdata      (intf.hrdata)
+        .hrdata      (intf.hrdata),
+        .hwstrb      (intf.hwstrb)
     );
 
     always #5 hclk = ~hclk;
@@ -70,5 +79,21 @@ module ahb_tb_top();
         // Run the multiple non-consecutive transactions test
         test_02_h = new(intf);
         test_02_h.main();
+        
+        // Run the full word write test
+        // test_03_h = new(intf);
+        // test_03_h.main();
+        
+        // Run the sparse write test
+        // test_04_h = new(intf);
+        // test_04_h.main();
+        
+        // Run the no write test
+        // test_05_h = new(intf);
+        // test_05_h.main();
+        
+        // Run the halfword strobe test
+        // test_06_h = new(intf);
+        // test_06_h.main();
     end
 endmodule

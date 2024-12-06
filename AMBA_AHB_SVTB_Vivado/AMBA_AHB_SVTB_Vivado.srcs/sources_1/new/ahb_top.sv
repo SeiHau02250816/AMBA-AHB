@@ -27,6 +27,7 @@ module ahb_top (
     input  logic [1:0]  htrans,
     input  logic        hmastlock,
     input  logic [31:0] hwdata,
+    input  logic [3:0]  hwstrb,
     
     // Response to testbench
     output logic        hreadyout,
@@ -83,6 +84,7 @@ module ahb_top (
         .htrans    (htrans),
         .hmastlock (hmastlock),
         .hwdata    (hwdata),
+        .hwstrb    (hwstrb),
 
         // Output ports
         .hreadyout (i_hready_sub1),
@@ -104,6 +106,7 @@ module ahb_top (
         .htrans    (htrans),
         .hmastlock (hmastlock),
         .hwdata    (hwdata),
+        .hwstrb    (hwstrb),
 
         // Output ports
         .hreadyout (i_hready_sub2),
@@ -125,6 +128,7 @@ module ahb_top (
         .htrans    (htrans),
         .hmastlock (hmastlock),
         .hwdata    (hwdata),
+        .hwstrb    (hwstrb),
 
         // Output ports
         .hreadyout (i_hready_sub3),
