@@ -9,6 +9,7 @@
 //    v1.0: Created initial version with descriptions.
 //    v1.1: Added AHB Basic Transfers feature.
 //    v1.2: Added HSIZE handling for different transfer sizes (byte, halfword, word)
+//    v1.3: Implemented write strobe handling for byte-level control.
 // 
 // Description:
 //    This module represents a subordinate device on the AHB bus. It provides the necessary
@@ -20,6 +21,7 @@
 //    - Direct input signal handling
 //    - Internal registers for output signals
 //    - HSIZE handling for byte, halfword, and word transfers
+//    - Write strobe handling for precise byte-level control
 //
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -56,6 +58,7 @@ module subordinate (
 
     // Data
     input  logic [31:0] hwdata,    // Write data bus
+    input  logic [3:0]  hwstrb,    // Write strobe
 
     /* Output ports */
     // Transfer response
@@ -97,19 +100,12 @@ module subordinate (
         
         if (hselx) begin
             if (hwrite == WRITE) begin
-                // Write operation based on transfer size
-                case(hsize)
-                    BYTE: begin
-                        memory[haddr[29:0]][7:0] = hwdata[7:0];
+                // Write operation based on write strobe
+                for (int i = 0; i < 4; i++) begin
+                    if (hwstrb[i]) begin
+                        memory[haddr[29:0]][8*i +: 8] = hwdata[8*i +: 8];
                     end
-                    HALFWORD: begin
-                        memory[haddr[29:0]][15:0] = hwdata[15:0];
-                    end
-                    WORD: begin
-                        memory[haddr[29:0]] = hwdata;
-                    end
-                    default: ; // Invalid size, do nothing
-                endcase
+                end
             end
             else begin
                 // Read operation based on transfer size
