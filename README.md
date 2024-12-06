@@ -7,6 +7,8 @@ The AMBA-AHB protocol is a system bus architecture designed by ARM Holdings for 
 ## Revision
 - **v1.0:** Created initial version with descriptions.  
 - **v1.1:** Added AHB Basic Transfers feature.
+- **v1.2:** Added HSIZE handling for different transfer sizes (byte, halfword, word)
+- **v1.3:** Added write strobe (HWSTRB) handling for byte-level control.
 
 ## Overview
 AMBA-AHB is based on a shared memory model, where all buses are synchronized using a clock signal. The protocol consists of two main components:
