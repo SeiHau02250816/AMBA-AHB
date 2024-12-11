@@ -28,23 +28,25 @@ class ahb_full_word_write_test;
         // Store the virtual interface
         this.vintf = vintf;
         
-        // Create AHB environment
-        ahb_env_h = new(this.vintf);
-        
         // Write configuration file
         write_config_file();
+
+        // Create AHB environment
+        ahb_env_h = new(this.vintf);
     endfunction
 
     // Write configuration to file
     function void write_config_file();
         int file;
         int num_txns = 1;  // Set number of transactions to 1
+        int transfer_type = 2;  // 2 = NONSEQ transfer
         int transfer_size = 32'b0010;  // Set transfer size to WORD
         int write_strobe = 32'b1111;  // Set write strobe to all bytes
 
         file = $fopen("ahb_config.cfg", "w");
         if (file) begin
             $fdisplay(file, "NUM_OF_TXN=%0d", num_txns);
+            $fdisplay(file, "TRANSFER_TYPE=%0d", transfer_type); // Full Word transfer
             $fdisplay(file, "TRANSFER_SIZE=%0d", transfer_size); // Default to WORD size
             $fdisplay(file, "WRITE_STROBE=%0d", write_strobe); // All strobes active
             $fclose(file);

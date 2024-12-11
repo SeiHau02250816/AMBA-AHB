@@ -22,6 +22,7 @@ class ahb_gen;
     mailbox g2d_mb;
     int transfer_size;
     int write_strobe;
+    int transfer_type;  // Added transfer type configuration
 
     // Transaction objects for various transfer types
     ahb_txn write_txn, idle_txn;
@@ -32,9 +33,14 @@ class ahb_gen;
         rand int unsigned haddr_value;
         rand logic [2:0] hsize_value;
         rand logic [3:0] hwstrb_value;
+        rand logic [1:0] htrans_value;
 
         constraint valid_hsize {
             hsize_value inside {3'b000, 3'b001, 3'b010}; // Byte, Halfword, Word
+        }
+
+        constraint valid_htrans {
+            htrans_value inside {2'b00, 2'b01, 2'b10, 2'b11}; // IDLE, BUSY, NONSEQ, SEQ
         }
 
         constraint valid_hwstrb {
@@ -63,6 +69,7 @@ class ahb_gen;
         consecutive = 0;   // Default to non-consecutive if not specified
         transfer_size = -1;
         write_strobe = -1;
+        transfer_type = -1; // Default value for transfer type
 
         file = $fopen("ahb_config.cfg", "r");
         if (file) begin
@@ -71,8 +78,9 @@ class ahb_gen;
                 $fgets(line, file);
                 if ($sscanf(line, "NUM_OF_TXN=%d", num_txns) == 1) continue;
                 if ($sscanf(line, "CONSECUTIVE=%d", consecutive) == 1) continue;
-                if ($sscanf(line, "TRANSFER_SIZE=%d", transfer_size) == 1) continue; // Read as binary
-                if ($sscanf(line, "WRITE_STROBE=%d", write_strobe) == 1) continue;   // Read as binary
+                if ($sscanf(line, "TRANSFER_SIZE=%d", transfer_size) == 1) continue;
+                if ($sscanf(line, "WRITE_STROBE=%d", write_strobe) == 1) continue;
+                if ($sscanf(line, "TRANSFER_TYPE=%d", transfer_type) == 1) continue;
             end
             $fclose(file);
         end else begin
@@ -85,6 +93,7 @@ class ahb_gen;
         $display("CONSECUTIVE = %0d", consecutive);
         $display("TRANSFER_SIZE = %b", transfer_size);
         $display("WRITE_STROBE = %b", write_strobe);
+        $display("TRANSFER_TYPE = %b", transfer_type);
     endfunction
 
     task gen_single();
@@ -93,12 +102,18 @@ class ahb_gen;
         // Randomize properties
         assert(props.randomize() with {
             props.haddr_value inside {[32'h0000_0000 : 32'h0FFF_FFFF]};  // Address range
+            props.htrans_value <= 2'b10; // Randomize to IDLE, BUSY, or NONSEQ
         }) else $fatal(1, "Failed to randomize transaction properties");
 
-        // Overwrite props if both transfer_size and write_strobe are specified
+        // Overwrite props if configurations are specified
         if (transfer_size != -1 && write_strobe != -1) begin
             props.hsize_value = transfer_size[2:0]; // Use transfer_size from config
             props.hwstrb_value = write_strobe; // Use write_strobe from config
+        end
+        
+        // Overwrite transfer type if specified in config
+        if (transfer_type != -1) begin
+            props.htrans_value = transfer_type[1:0];
         end
 
         // Write transaction
@@ -108,8 +123,8 @@ class ahb_gen;
             hsize == props.hsize_value;
             haddr == props.haddr_value; // Use the same randomized address
             hwstrb == props.hwstrb_value; // Use configured write strobe or randomized value
+            htrans == props.htrans_value; // Use the specified htrans value
         };
-        
         g2d_mb.put(write_txn);
         
         // Read transaction
@@ -118,6 +133,7 @@ class ahb_gen;
             hwrite == 1'b0;      // Read transfer
             haddr  == props.haddr_value; // Read from the same address
             hsize == props.hsize_value; // Use the same randomized hsize
+            htrans == props.htrans_value; // Use the specified htrans value
         };
         g2d_mb.put(read_txn);
     endtask: gen_single

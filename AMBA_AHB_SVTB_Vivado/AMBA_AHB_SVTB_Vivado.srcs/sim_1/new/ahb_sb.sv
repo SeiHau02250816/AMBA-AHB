@@ -27,20 +27,15 @@
 //    v1.1: Added AHB Basic Transfers feature.
 //    v1.2: Added HSIZE handling for different transfer sizes (byte, halfword, word)
 //    v1.3: Updated ref_model task to handle write transactions using hwstrb signal
+//    v1.4: Updated scoreboard to handle IDLE and BUSY transfer types
 //////////////////////////////////////////////////////////////////////////////////
 
 class ahb_sb;
-    // Mailbox for receiving transactions from monitor
-    mailbox m2s_mb;
-    
-    // Internal memory model 
-    logic [31:0] mem[logic [31:0]];
-    
-    // Reference read data
-    logic [31:0] rdata;
-    
-    // Current transaction handle
-    ahb_txn txn_h;
+    mailbox m2s_mb;                 // Mailbox for receiving transactions from monitor
+    logic [31:0] mem[logic [31:0]]; // Internal memory model 
+    logic [31:0] rdata;             // Reference read data
+    logic [31:0] prev_mem_value;    // Previous memory value for IDLE/BUSY checks
+    ahb_txn txn_h;                  // Transaction handler 
     
     // Constructor
     function new(mailbox m2s_mb);
@@ -61,6 +56,14 @@ class ahb_sb;
     
     // Reference model for tracking writes and preparing reads
     task ref_model;
+        // Store current memory value before any operations
+        prev_mem_value = mem[txn_h.haddr];
+
+        // Skip memory operations for IDLE and BUSY transfers
+        if (txn_h.htrans inside {2'b00, 2'b01}) begin
+            return;
+        end
+
         // Handle write transactions with write strobe
         if (txn_h.hwrite) begin
             for (int i = 0; i < 4; i++) begin
@@ -83,19 +86,49 @@ class ahb_sb;
     
     // Compare expected and actual data
     task compare();
+        // For IDLE and BUSY transfers
+        if (txn_h.htrans inside {2'b00, 2'b01}) begin
+            string transfer_type = txn_h.htrans == 2'b00 ? "IDLE" : "BUSY";
+            
+            // Check response is OKAY
+            if (txn_h.hresp !== 1'b0) begin
+                $error($time, "[SCB-FAIL] Invalid response for %s transfer. Expected OKAY(0), Got %0b", 
+                       transfer_type, txn_h.hresp);
+            end
+            
+            // Check zero wait state
+            if (!txn_h.hreadyout) begin
+                $error($time, "[SCB-FAIL] Invalid wait state for %s transfer. Expected zero wait state", 
+                       transfer_type);
+            end
+            
+            // For write transaction, verify memory wasn't updated
+            if (txn_h.hwrite) begin
+                if (mem[txn_h.haddr] !== prev_mem_value) begin
+                    $error($time, "[SCB-FAIL] Memory was modified during %s transfer. Address: %0h, Previous: %0h, Current: %0h",
+                           transfer_type, txn_h.haddr, prev_mem_value, mem[txn_h.haddr]);
+                end
+            end
+            
+            // All checks passed
+            if (txn_h.hresp === 1'b0 && txn_h.hreadyout && (mem[txn_h.haddr] === prev_mem_value)) begin
+                $display($time, "[SCB-PASS] %s transfer completed with correct OKAY response, zero wait state, and no memory modification", 
+                        transfer_type);
+            end
+        end
+
         // Only compare for read transactions when transfer is complete
         if (!txn_h.hwrite && txn_h.hreadyout) begin
             // Check for data match
             logic [31:0] expected_data;
-            case (txn_h.hsize)
-                3'b000: expected_data = {24'h0, txn_h.hrdata[7:0]};    // BYTE
-                3'b001: expected_data = {16'h0, txn_h.hrdata[15:0]};  // HALFWORD
-                3'b010: expected_data = txn_h.hrdata;                 // WORD
-                default: expected_data = 32'h0; // Invalid size
-            endcase
-            
+
+            // Reset expected_data to 0 if all bits are x
+            // if (^rdata === 1'bx) begin
+            //     rdata = 32'b0;
+            // end
+
             // Debugging statements to log values before comparison
-            if (rdata === expected_data) begin
+            if (rdata === txn_h.hrdata) begin
                 $display($time, "[SCB-PASS] addr = %0h, \t expected data = %0h, actual data = %0h", 
                          txn_h.haddr, rdata, txn_h.hrdata);
             end

@@ -28,28 +28,33 @@ class ahb_no_write_test;
         // Store the virtual interface
         this.vintf = vintf;
         
-        // Create AHB environment
-        ahb_env_h = new(this.vintf);
-        
         // Write configuration file
         write_config_file();
+
+        // Create AHB environment
+        ahb_env_h = new(this.vintf);
     endfunction
 
     // Write configuration to file
     function void write_config_file();
         int file;
         int num_txns = 1;  // Set number of transactions to 1
+        int transfer_type = 2;  // 2 = NONSEQ transfer
         int transfer_size = 32'b0010;  // Set transfer size to WORD
         int write_strobe = 32'b0000;  // Set write strobe to no bytes active
 
         file = $fopen("ahb_config.cfg", "w");
         if (file) begin
             $fdisplay(file, "NUM_OF_TXN=%0d", num_txns);
+            $fdisplay(file, "TRANSFER_TYPE=%0d", transfer_type);
             $fdisplay(file, "TRANSFER_SIZE=%0d", transfer_size);
             $fdisplay(file, "WRITE_STROBE=%0d", write_strobe);
             $fclose(file);
             $display("Configuration file written successfully.");
             $display("Number of transactions = %0d.", num_txns);
+            $display("Transfer Type: NONSEQ");
+            $display("Transfer Size: WORD");
+            $display("Write Strobe: no bytes active");
         end else begin
             $error("Error: Could not create configuration file.");
         end

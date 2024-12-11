@@ -37,11 +37,11 @@ class ahb_multiple_non_consecutive_txns_test;
         // Store the virtual interface
         this.vintf = vintf;
         
-        // Create AHB environment
-        ahb_env_h = new(this.vintf);
-        
         // Write configuration file
         write_config_file();
+
+        // Create AHB environment
+        ahb_env_h = new(this.vintf);
     endfunction
 
     // Write configuration to file
@@ -49,9 +49,9 @@ class ahb_multiple_non_consecutive_txns_test;
         int file;
         txn_config ahb_config = new();
 
-        // Randomize number of transactions between 10 and 20
+        // Randomize number of transactions between 40 and 50
         assert(ahb_config.randomize() with {
-            ahb_config.num_txns inside {[10:20]};
+            ahb_config.num_txns inside {[40:50]};
         }) else $fatal("Failed to randomize num_txns");
 
         file = $fopen("ahb_config.cfg", "w");

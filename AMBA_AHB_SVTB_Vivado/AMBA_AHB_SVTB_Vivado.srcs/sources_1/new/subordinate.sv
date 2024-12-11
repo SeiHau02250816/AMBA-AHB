@@ -10,6 +10,7 @@
 //    v1.1: Added AHB Basic Transfers feature.
 //    v1.2: Added HSIZE handling for different transfer sizes (byte, halfword, word)
 //    v1.3: Implemented write strobe handling for byte-level control.
+//    v1.4: Updated to handle IDLE and BUSY transactions
 // 
 // Description:
 //    This module represents a subordinate device on the AHB bus. It provides the necessary
@@ -38,6 +39,14 @@ typedef enum logic [2:0] {
     WORD     = 3'b010   // 32-bit transfer
 } hsize_t;
 
+// Enum type for htrans signal
+typedef enum logic [1:0] {
+    IDLE          = 2'b00,  // No transfer is occurring
+    BUSY          = 2'b01,  // The current transfer is ongoing
+    NONSEQUENTIAL  = 2'b10,  // A new transfer is being initiated, but it is not the first in a burst
+    SEQUENTIAL     = 2'b11   // A new transfer is being initiated, and it is the first in a burst
+} htrans_t;
+
 module subordinate (
     /* Input ports */
     // Global signals
@@ -53,7 +62,7 @@ module subordinate (
     input  hsize_t      hsize,     // Transfer size
     input  logic [2:0]  hburst,    // Burst type (ignored in this example)
     input  logic [3:0]  hprot,     // Protection type (ignored in this example)
-    input  logic [1:0]  htrans,    // Transaction type (ignored in this example)
+    input  htrans_t     htrans,    // Transaction type
     input  logic        hmastlock, // Master lock signal
 
     // Data
@@ -82,7 +91,7 @@ module subordinate (
         if (!hresetn) begin
             ready <= 1'b0;
             resp <= 1'b0;
-            rdata <= 32'h0;
+            rdata <= 32'hx;
         end
         else begin
             ready <= ready_n;
@@ -99,31 +108,34 @@ module subordinate (
         rdata_n = rdata;
         
         if (hselx) begin
-            if (hwrite == WRITE) begin
-                // Write operation based on write strobe
-                for (int i = 0; i < 4; i++) begin
-                    if (hwstrb[i]) begin
-                        memory[haddr[29:0]][8*i +: 8] = hwdata[8*i +: 8];
+            // Handle IDLE and BUSY transactions
+            if (!(htrans == IDLE || htrans == BUSY)) begin
+                if (hwrite == WRITE) begin
+                    // Write operation based on write strobe
+                    for (int i = 0; i < 4; i++) begin
+                        if (hwstrb[i]) begin
+                            memory[haddr[29:0]][8*i +: 8] = hwdata[8*i +: 8];
+                        end
                     end
                 end
-            end
-            else begin
-                // Read operation based on transfer size
-                logic [31:0] mem_data;  // Temporary variable for memory read
-                mem_data = memory[haddr[29:0]];  // Read memory first
-                
-                case(hsize)
-                    BYTE: begin
-                        rdata_n = {24'b0, mem_data[7:0]};
-                    end
-                    HALFWORD: begin
-                        rdata_n = {16'b0, mem_data[15:0]};
-                    end
-                    WORD: begin
-                        rdata_n = mem_data;
-                    end
-                    default: rdata_n = 32'h0; // Invalid size
-                endcase
+                else begin
+                    // Read operation based on transfer size
+                    logic [31:0] mem_data;  // Temporary variable for memory read
+                    mem_data = memory[haddr[29:0]];  // Read memory first
+                    
+                    case(hsize)
+                        BYTE: begin
+                            rdata_n = {24'b0, mem_data[7:0]};
+                        end
+                        HALFWORD: begin
+                            rdata_n = {16'b0, mem_data[15:0]};
+                        end
+                        WORD: begin
+                            rdata_n = mem_data;
+                        end
+                        default: rdata_n = 32'h0; // Invalid size
+                    endcase
+                end
             end
         end
     end
