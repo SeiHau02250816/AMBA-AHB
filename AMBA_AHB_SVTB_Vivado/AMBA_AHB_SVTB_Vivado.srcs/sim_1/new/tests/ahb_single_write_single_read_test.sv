@@ -27,12 +27,12 @@ class ahb_single_write_single_read_test;
     function new(virtual ahb_intf vintf);
         // Store the virtual interface
         this.vintf = vintf;
+
+        // Write configuration file
+        write_config_file();
         
         // Create AHB environment
         ahb_env_h = new(this.vintf);
-        
-        // Write configuration file
-        write_config_file();
     endfunction
 
     // Write configuration to file

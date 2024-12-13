@@ -15,8 +15,10 @@
 
 module ahb_mul (
     /* Input ports */
+    input  logic       hclk,      // Clock signal
+    input  logic       hresetn,   // Reset signal
     // Secondary select signals
-    input logic [1:0] mul_sel,
+    input logic [1:0]  mul_sel,
     // Data inputs from subordinates
     input logic [31:0] hrdata1,
     input logic [31:0] hrdata2,
@@ -26,12 +28,26 @@ module ahb_mul (
     // Selected data output
     output logic [31:0] hrdata
 );
+    // Internal registers for output signals
+    logic [31:0] rdata, rdata_n;
+
+    always_ff @(!hresetn or posedge hclk) begin
+        if (!hresetn) begin
+            rdata <= 32'b0;
+        end
+        else begin
+            rdata <= rdata_n;
+        end
+    end
+
     always_comb begin
         case (mul_sel)
-            2'b00: hrdata = hrdata1;
-            2'b01: hrdata = hrdata2;
-            2'b10: hrdata = hrdata3;
-            default: hrdata = 32'b0; // Default to 0 if mul_sel is out of range
+            2'b00: rdata_n <= hrdata1;
+            2'b01: rdata_n <= hrdata2;
+            2'b10: rdata_n <= hrdata3;
+            default: rdata_n <= 32'b0; // Default to 0 if mul_sel is out of range
         endcase
     end
+
+    assign hrdata = rdata;
 endmodule

@@ -29,11 +29,6 @@ class ahb_txn;
     logic        hresp;     // Transfer response
     logic [31:0] hrdata;    // Read data bus
 
-    // Constraints (example constraints, adjust as needed)
-    constraint valid_addr {
-        haddr <= 32'hbfff_ffff;
-    }
-
     // For 32-bits data bus, hsize must be <= 3'b010
     constraint valid_size {
         hsize inside {3'b000, 3'b001, 3'b010}; // Byte, Halfword, Word
@@ -46,6 +41,21 @@ class ahb_txn;
         else if (hsize == 3'b001) hwstrb <= 4'b0011; // HALFWORD
         else if (hsize == 3'b010) hwstrb <= 4'b1111; // WORD
     }
+
+    constraint aligned_and_valid_addr {
+        solve hsize before haddr;
+
+        // Alignment based on hsize
+        if (hsize == 3'b010) { // WORD transfer
+            haddr[1:0] == 2'b00; // Ensure word alignment
+        } else if (hsize == 3'b001) { // HALFWORD transfer
+            haddr[0] == 1'b0; // Ensure halfword alignment
+        }
+
+        // Ensure valid address range
+        haddr <= 32'hbfff_ffff;
+    }
+
 
     // Deep copy method (similar to APB transaction class)
     function ahb_txn clone();

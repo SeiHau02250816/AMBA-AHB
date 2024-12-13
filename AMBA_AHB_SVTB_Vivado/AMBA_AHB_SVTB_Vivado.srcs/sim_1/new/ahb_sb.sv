@@ -32,7 +32,7 @@
 
 class ahb_sb;
     mailbox m2s_mb;                 // Mailbox for receiving transactions from monitor
-    logic [31:0] mem[logic [31:0]]; // Internal memory model 
+    logic [7:0] mem[logic [31:0]]; // Internal memory model 
     logic [31:0] rdata;             // Reference read data
     logic [31:0] prev_mem_value;    // Previous memory value for IDLE/BUSY checks
     ahb_txn txn_h;                  // Transaction handler 
@@ -64,21 +64,33 @@ class ahb_sb;
             return;
         end
 
-        // Handle write transactions with write strobe
+        // Proceed with write operations
         if (txn_h.hwrite) begin
-            for (int i = 0; i < 4; i++) begin
-                if (txn_h.hwstrb[i]) begin
-                    mem[txn_h.haddr][8*i +: 8] = txn_h.hwdata[8*i +: 8];
+            // Write operation based on transfer size and write strobe
+            case (txn_h.hsize)
+                3'b000: begin // BYTE
+                    if (txn_h.hwstrb[0]) mem[txn_h.haddr][7:0] = txn_h.hwdata[7:0]; // Store 8 bits at the address
                 end
-            end
+                3'b001: begin // HALFWORD
+                    if (txn_h.hwstrb[0]) mem[txn_h.haddr] = txn_h.hwdata[7:0]; // Store lower half
+                    if (txn_h.hwstrb[1]) mem[txn_h.haddr + 1] = txn_h.hwdata[15:8]; // Store upper half
+                end
+                3'b010: begin // WORD
+                    if (txn_h.hwstrb[0]) mem[txn_h.haddr][7:0] = txn_h.hwdata[7:0];   // Store byte 0
+                    if (txn_h.hwstrb[1]) mem[txn_h.haddr + 1] = txn_h.hwdata[15:8]; // Store byte 1
+                    if (txn_h.hwstrb[2]) mem[txn_h.haddr + 2] = txn_h.hwdata[23:16]; // Store byte 2
+                    if (txn_h.hwstrb[3]) mem[txn_h.haddr + 3] = txn_h.hwdata[31:24]; // Store byte 3
+                end
+                default: ; // Invalid size
+            endcase
         end
         
         // Prepare read data for read transactions
         if (!txn_h.hwrite) begin
             case (txn_h.hsize)
-                3'b000: rdata = {24'h0, mem[txn_h.haddr][7:0]};   // BYTE
-                3'b001: rdata = {16'h0, mem[txn_h.haddr][15:0]};  // HALFWORD
-                3'b010: rdata = mem[txn_h.haddr];                 // WORD
+                3'b000: rdata = {24'b0, mem[txn_h.haddr]}; // Read 8 bits
+                3'b001: rdata = {16'b0, mem[txn_h.haddr + 1], mem[txn_h.haddr]}; // Read 16 bits
+                3'b010: rdata = {mem[txn_h.haddr + 3], mem[txn_h.haddr + 2], mem[txn_h.haddr + 1], mem[txn_h.haddr]}; // Read 32 bits
                 default: rdata = 32'h0; // Invalid size
             endcase
         end
@@ -118,14 +130,13 @@ class ahb_sb;
         end
 
         // Only compare for read transactions when transfer is complete
-        if (!txn_h.hwrite && txn_h.hreadyout) begin
-            // Check for data match
-            logic [31:0] expected_data;
-
-            // Reset expected_data to 0 if all bits are x
-            // if (^rdata === 1'bx) begin
-            //     rdata = 32'b0;
-            // end
+        else if (!txn_h.hwrite && txn_h.hreadyout) begin
+            // Reset rdata bits to 0 if any bit is 'x'
+            for (int i = 0; i < 32; i++) begin
+                if (rdata[i] === 1'bx) begin
+                    rdata[i] = 1'b0;
+                end
+            end
 
             // Debugging statements to log values before comparison
             if (rdata === txn_h.hrdata) begin

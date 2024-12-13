@@ -61,6 +61,8 @@ module ahb_top (
     // Instantiate multiplexor
     ahb_mul u_mul (
         // Input ports
+        .hclk     (hclk),
+        .hresetn  (hresetn),
         .mul_sel  (i_mul_sel),
         .hrdata1  (i_hrdata_sub1),
         .hrdata2  (i_hrdata_sub2),

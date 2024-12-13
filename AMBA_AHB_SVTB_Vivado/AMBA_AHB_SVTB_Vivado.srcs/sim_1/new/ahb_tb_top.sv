@@ -28,6 +28,7 @@
 `include "tests/write_strobe/ahb_halfword_strobe_test.sv"
 `include "tests/txn_types/ahb_idle_transfer_test.sv"
 `include "tests/txn_types/ahb_busy_transfer_test.sv"
+`include "tests/test_reproduce_error.sv"
 `include "ahb_gen.sv"
 `include "ahb_mon.sv"
 `include "ahb_sb.sv"
@@ -42,6 +43,7 @@ module ahb_tb_top();
     ahb_idle_transfer_test test_06_h;
     ahb_busy_transfer_test test_07_h; 
     ahb_multiple_non_consecutive_txns_test test_08_h; 
+    test_reproduce_error reproduce_error_test_h;
 
     logic hclk, hresetn;
     
@@ -77,8 +79,8 @@ module ahb_tb_top();
         hclk = 0;
         
         // Run the single write + single read test
-//         test_01_h = new(intf);
-//         test_01_h.main();
+//        test_01_h = new(intf);
+//        test_01_h.main();
 
         // Run the full word write test
 //        test_02_h = new(intf);
@@ -89,8 +91,8 @@ module ahb_tb_top();
 //        test_03_h.main();
         
         // Run the no write test
-        test_04_h = new(intf);
-        test_04_h.main();
+//        test_04_h = new(intf);
+//        test_04_h.main();
         
         // Run the halfword strobe test
 //        test_05_h = new(intf);
@@ -105,7 +107,11 @@ module ahb_tb_top();
 //        test_07_h.main();
 
         // Run the multiple non-consecutive transactions test
-//        test_08_h = new(intf);
-//        test_08_h.main();
+        test_08_h = new(intf);
+        test_08_h.main();
+
+        // Run the reproduce error test
+//        reproduce_error_test_h = new(intf);
+//        reproduce_error_test_h.main();
     end
 endmodule
