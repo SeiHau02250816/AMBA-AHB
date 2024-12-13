@@ -69,7 +69,12 @@ class ahb_mon;
             $display("Task sample :: ahb_mon");
             
             ahb_sample();
-            ahb_log(); // Log the transaction after sampling
+
+            if (txn_h.hreadyout && txn_h.haddr !== 32'hXXXXXXXX) begin
+                ahb_log(); // Log the transaction after sampling
+                m2s_mb.put(txn_h);
+            end
+            
         end
     endtask
     
@@ -92,9 +97,6 @@ class ahb_mon;
         txn_h.hreadyout = vintf.mon_cb.hreadyout;
         txn_h.hresp = vintf.mon_cb.hresp;
         txn_h.hrdata = vintf.mon_cb.hrdata;
-        
-        // Send transaction to mailbox for further processing
-        m2s_mb.put(txn_h);
     endtask
 
     // Log the transaction details
@@ -105,34 +107,31 @@ class ahb_mon;
         string trans_str;
         string hwstrb_str;
         
-        // Log the transaction only when hreadyout is asserted and address is not 'x'
-        if (txn_h.hreadyout && txn_h.haddr !== 32'hXXXXXXXX) begin
-            // Determine operation type
-            if (txn_h.hwrite) begin
-                operation = "WRITE";
-                rdata_str = "0xXXXXXXXX"; 
-                $sformat(wdata_str, "0x%08h", txn_h.hwdata);  // Pad write data with leading zeros
-                $sformat(hwstrb_str, "%04b", txn_h.hwstrb);  // Format write strobe as 4-bit binary
-            end else begin
-                operation = "READ ";
-                wdata_str = "0xXXXXXXXX"; 
-                $sformat(rdata_str, "0x%08h", txn_h.hrdata);  // Pad read data with leading zeros
-                hwstrb_str = "0000"; 
-            end
-            
-            // Convert transfer type to string
-            case(txn_h.htrans)
-                2'b00:   trans_str = "IDLE";
-                2'b01:   trans_str = "BUSY";
-                2'b10:   trans_str = "NONSEQ";
-                2'b11:   trans_str = "SEQ";
-                default: trans_str = "UNDEF";
-            endcase
-            
-            // Log the transaction details in right-aligned, table format with padded values
-            $fwrite(log_file, "%12t | %10s | 0x%08h | %10d | %10d | %10d | %10s | %10s | %12s | %10s | %10d\n",
-                    $time, operation, txn_h.haddr, txn_h.hwrite, txn_h.hsize, 
-                    txn_h.hburst, trans_str, wdata_str, hwstrb_str, rdata_str, txn_h.hresp);
+        // Determine operation type
+        if (txn_h.hwrite) begin
+            operation = "WRITE";
+            rdata_str = "0xXXXXXXXX"; 
+            $sformat(wdata_str, "0x%08h", txn_h.hwdata);  // Pad write data with leading zeros
+            $sformat(hwstrb_str, "%04b", txn_h.hwstrb);  // Format write strobe as 4-bit binary
+        end else begin
+            operation = "READ ";
+            wdata_str = "0xXXXXXXXX"; 
+            $sformat(rdata_str, "0x%08h", txn_h.hrdata);  // Pad read data with leading zeros
+            hwstrb_str = "0000"; 
         end
+        
+        // Convert transfer type to string
+        case(txn_h.htrans)
+            2'b00:   trans_str = "IDLE";
+            2'b01:   trans_str = "BUSY";
+            2'b10:   trans_str = "NONSEQ";
+            2'b11:   trans_str = "SEQ";
+            default: trans_str = "UNDEF";
+        endcase
+        
+        // Log the transaction details in right-aligned, table format with padded values
+        $fwrite(log_file, "%12t | %10s | 0x%08h | %10d | %10d | %10d | %10s | %10s | %12s | %10s | %10d\n",
+                $time, operation, txn_h.haddr, txn_h.hwrite, txn_h.hsize, 
+                txn_h.hburst, trans_str, wdata_str, hwstrb_str, rdata_str, txn_h.hresp);
     endtask
 endclass

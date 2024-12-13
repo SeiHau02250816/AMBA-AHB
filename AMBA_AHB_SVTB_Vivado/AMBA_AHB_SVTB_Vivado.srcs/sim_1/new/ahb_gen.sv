@@ -49,13 +49,6 @@ class ahb_gen;
             htrans_value inside {2'b00, 2'b01, 2'b10, 2'b11}; // IDLE, BUSY, NONSEQ, SEQ
         }
 
-        constraint valid_hwstrb {
-            solve hsize_value before hwstrb_value;
-            if (hsize_value == 3'b000) hwstrb_value <= 4'b0001; // BYTE
-            else if (hsize_value == 3'b001) hwstrb_value <= 4'b0011; // HALFWORD
-            else if (hsize_value == 3'b010) hwstrb_value <= 4'b1111; // WORD
-        }
-
         constraint aligned_and_valid_addr {
             solve hsize_value before haddr_value;
 
@@ -68,6 +61,23 @@ class ahb_gen;
 
             // Ensure valid address range
             haddr_value <= 32'hbfff_ffff;
+        }
+
+        constraint valid_hwstrb_value { 
+            solve hsize_value before hwstrb_value;
+            solve haddr_value before hwstrb_value;
+
+            if (hsize_value == 3'b000) { // BYTE
+                if (haddr_value[1:0] == 2'b00) hwstrb_value[3:1] == 3'b000; // Only hwstrb[0] can be randomized
+                else if (haddr_value[1:0] == 2'b01) hwstrb_value[3:2] == 2'b00 && hwstrb_value[0] == 1'b0; // hwstrb[1] can be randomized
+                else if (haddr_value[1:0] == 2'b10) hwstrb_value[3] == 1'b0 && hwstrb_value[1:0] == 2'b00; // hwstrb[2] can be randomized
+                else if (haddr_value[1:0] == 2'b11) hwstrb_value[2:0] == 3'b000; // Only hwstrb[3] can be randomized
+            } 
+            else if (hsize_value == 3'b001) { // HALFWORD
+                if (haddr_value[1] == 1'b0) hwstrb_value[3:2] == 2'b00; // hwstrb[1:0] can be randomized
+                else if (haddr_value[1] == 1'b1) hwstrb_value[1:0] == 2'b00; // hwstrb[3:2] can be randomized
+            }
+            // For hsize == 3'b010 (WORD), no constraint is added to hwstrb for fine-grained masking
         }
 
         function new();
@@ -119,9 +129,9 @@ class ahb_gen;
         $display("Loaded Configurations:");
         $display("NUM_OF_TXN = %0d", num_txns);
         $display("CONSECUTIVE = %0d", consecutive);
-        $display("TRANSFER_SIZE = %0b", transfer_size);
+        $display("TRANSFER_SIZE = %0d", transfer_size);
         $display("WRITE_STROBE = %0b", write_strobe);
-        $display("TRANSFER_TYPE = %0b", transfer_type);
+        $display("TRANSFER_TYPE = %0d", transfer_type);
         $display("BURST = %0b", burst);
         $display("BURST_TYPE = %0b", burst_type);
         $display("ADDRESS = %0h", addr);

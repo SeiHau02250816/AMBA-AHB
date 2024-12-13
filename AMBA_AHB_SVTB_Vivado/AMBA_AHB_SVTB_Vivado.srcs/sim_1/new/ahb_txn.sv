@@ -34,14 +34,6 @@ class ahb_txn;
         hsize inside {3'b000, 3'b001, 3'b010}; // Byte, Halfword, Word
     }
 
-    constraint valid_hwstrb {
-        solve hsize before hwstrb;
-
-        if (hsize == 3'b000) hwstrb <= 4'b0001; // BYTE
-        else if (hsize == 3'b001) hwstrb <= 4'b0011; // HALFWORD
-        else if (hsize == 3'b010) hwstrb <= 4'b1111; // WORD
-    }
-
     constraint aligned_and_valid_addr {
         solve hsize before haddr;
 
@@ -50,10 +42,33 @@ class ahb_txn;
             haddr[1:0] == 2'b00; // Ensure word alignment
         } else if (hsize == 3'b001) { // HALFWORD transfer
             haddr[0] == 1'b0; // Ensure halfword alignment
+        } else { // BYTE transfer
+            // No alignment required for BYTE   
         }
 
         // Ensure valid address range
         haddr <= 32'hbfff_ffff;
+    }
+
+    // With masking capabilities
+    constraint valid_hwstrb { 
+        solve hwrite before hwstrb;
+        solve haddr before hwstrb;
+
+        if (hwrite == 1'b0) hwstrb == 4'b0000; // Read transactions must have hwstrb = 0
+        else {
+            if (hsize == 3'b000) { // BYTE
+                if (haddr[1:0] == 2'b00) hwstrb[3:1] == 3'b000; // Only hwstrb[0] can be randomized
+                else if (haddr[1:0] == 2'b01) hwstrb[3:2] == 2'b00 && hwstrb[0] == 1'b0; // hwstrb[1] can be randomized
+                else if (haddr[1:0] == 2'b10) hwstrb[3] == 1'b0 && hwstrb[1:0] == 2'b00; // hwstrb[2] can be randomized
+                else if (haddr[1:0] == 2'b11) hwstrb[2:0] == 3'b000; // Only hwstrb[3] can be randomized
+            } 
+            else if (hsize == 3'b001) { // HALFWORD
+                if (haddr[1:0] == 2'b00) hwstrb[3:2] == 2'b00; // hwstrb[1:0] can be randomized
+                else if (haddr[1:0] == 2'b10) hwstrb[1:0] == 2'b00; // hwstrb[3:2] can be randomized
+            }
+            // For hsize == 3'b010 (WORD), no constraint is added to hwstrb for fine-grained masking
+        }
     }
 
 

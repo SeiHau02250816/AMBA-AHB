@@ -18,6 +18,7 @@
 //    - Handles different transfer types 
 //    - Validates read data against reference model
 //    - Provides detailed pass/fail reporting
+//    - Combined all the subordinate's memory space into a single memory model
 //
 // Dependencies:
 //    - Requires ahb_txn transaction class (not shown)
@@ -34,6 +35,7 @@ class ahb_sb;
     mailbox m2s_mb;                 // Mailbox for receiving transactions from monitor
     logic [7:0] mem[logic [31:0]]; // Internal memory model 
     logic [31:0] rdata;             // Reference read data
+    logic resp;                     // Reference response
     logic [31:0] prev_mem_value;    // Previous memory value for IDLE/BUSY checks
     ahb_txn txn_h;                  // Transaction handler 
     
@@ -58,35 +60,64 @@ class ahb_sb;
     task ref_model;
         // Store current memory value before any operations
         prev_mem_value = mem[txn_h.haddr];
+        resp = 1'b0; // Default to OKAY
 
         // Skip memory operations for IDLE and BUSY transfers
         if (txn_h.htrans inside {2'b00, 2'b01}) begin
             return;
         end
 
+        // Update resp to report errors, if any.
+        if (txn_h.hsize == 3'b000) begin // BYTE
+            case (txn_h.haddr[1:0])
+                2'b00: resp = (txn_h.hwstrb[3:1] == 3'b000) ? 1'b0 : 1'b1;
+                2'b01: resp = (txn_h.hwstrb[3:2] == 2'b00 && txn_h.hwstrb[0] == 1'b0) ? 1'b0 : 1'b1;
+                2'b10: resp = (txn_h.hwstrb[3] == 1'b0 && txn_h.hwstrb[1:0] == 2'b00) ? 1'b0 : 1'b1;
+                2'b11: resp = (txn_h.hwstrb[2:0] == 3'b000) ? 1'b0 : 1'b1;
+                default: resp = 1'b1; // Invalid case
+            endcase
+        end else if (txn_h.hsize == 3'b001) begin // HALFWORD
+            if (txn_h.haddr[1:0] == 2'b00) resp = (txn_h.hwstrb[3:2] == 2'b00) ? 1'b0 : 1'b1;
+            else if (txn_h.haddr[1:0] == 2'b10) resp = (txn_h.hwstrb[1:0] == 2'b00) ? 1'b0 : 1'b1;
+            else resp = 1'b1; // Invalid address
+        end
+
         // Proceed with write operations
-        if (txn_h.hwrite) begin
+        if (!resp && txn_h.hwrite) begin
             // Write operation based on transfer size and write strobe
             case (txn_h.hsize)
                 3'b000: begin // BYTE
-                    if (txn_h.hwstrb[0]) mem[txn_h.haddr][7:0] = txn_h.hwdata[7:0]; // Store 8 bits at the address
+                    case(txn_h.haddr[1:0]) 
+                        2'b00: if (txn_h.hwstrb[0]) mem[txn_h.haddr[31:0]] = txn_h.hwdata[7:0];
+                        2'b01: if (txn_h.hwstrb[1]) mem[txn_h.haddr[31:0]] = txn_h.hwdata[7:0];
+                        2'b10: if (txn_h.hwstrb[2]) mem[txn_h.haddr[31:0]] = txn_h.hwdata[7:0];
+                        2'b11: if (txn_h.hwstrb[3]) mem[txn_h.haddr[31:0]] = txn_h.hwdata[7:0];
+                    endcase
                 end
                 3'b001: begin // HALFWORD
-                    if (txn_h.hwstrb[0]) mem[txn_h.haddr] = txn_h.hwdata[7:0]; // Store lower half
-                    if (txn_h.hwstrb[1]) mem[txn_h.haddr + 1] = txn_h.hwdata[15:8]; // Store upper half
+                    case(txn_h.haddr[1:0]) 
+                        2'b00: begin
+                            if (txn_h.hwstrb[0]) mem[txn_h.haddr[31:0]] = txn_h.hwdata[7:0];
+                            if (txn_h.hwstrb[1]) mem[txn_h.haddr[31:0] + 1] = txn_h.hwdata[15:8];
+                        end
+                        2'b10: begin
+                            if (txn_h.hwstrb[2]) mem[txn_h.haddr[31:0]] = txn_h.hwdata[7:0];
+                            if (txn_h.hwstrb[3]) mem[txn_h.haddr[31:0] + 1] = txn_h.hwdata[15:8];
+                        end
+                    endcase
                 end
                 3'b010: begin // WORD
-                    if (txn_h.hwstrb[0]) mem[txn_h.haddr][7:0] = txn_h.hwdata[7:0];   // Store byte 0
-                    if (txn_h.hwstrb[1]) mem[txn_h.haddr + 1] = txn_h.hwdata[15:8]; // Store byte 1
-                    if (txn_h.hwstrb[2]) mem[txn_h.haddr + 2] = txn_h.hwdata[23:16]; // Store byte 2
-                    if (txn_h.hwstrb[3]) mem[txn_h.haddr + 3] = txn_h.hwdata[31:24]; // Store byte 3
+                    if (txn_h.hwstrb[0]) mem[txn_h.haddr[31:0]] = txn_h.hwdata[7:0];   // Store byte 0
+                    if (txn_h.hwstrb[1]) mem[txn_h.haddr[31:0] + 1] = txn_h.hwdata[15:8]; // Store byte 1
+                    if (txn_h.hwstrb[2]) mem[txn_h.haddr[31:0] + 2] = txn_h.hwdata[23:16]; // Store byte 2
+                    if (txn_h.hwstrb[3]) mem[txn_h.haddr[31:0] + 3] = txn_h.hwdata[31:24]; // Store byte 3
                 end
                 default: ; // Invalid size
             endcase
         end
-        
+
         // Prepare read data for read transactions
-        if (!txn_h.hwrite) begin
+        if (!resp && !txn_h.hwrite) begin
             case (txn_h.hsize)
                 3'b000: rdata = {24'b0, mem[txn_h.haddr]}; // Read 8 bits
                 3'b001: rdata = {16'b0, mem[txn_h.haddr + 1], mem[txn_h.haddr]}; // Read 16 bits
@@ -98,8 +129,12 @@ class ahb_sb;
     
     // Compare expected and actual data
     task compare();
+        if (txn_h.hreadyout && txn_h.hresp !== resp) begin
+            $error($time, "[SCB-FAIL] Response mismatch! Expected %0b, Got %0b", resp, txn_h.hresp);
+        end
+
         // For IDLE and BUSY transfers
-        if (txn_h.htrans inside {2'b00, 2'b01}) begin
+        if (txn_h.hreadyout && txn_h.htrans inside {2'b00, 2'b01}) begin
             string transfer_type = txn_h.htrans == 2'b00 ? "IDLE" : "BUSY";
             
             // Check response is OKAY

@@ -113,25 +113,30 @@ module subordinate (
             if (hselx) begin
                 // Handle AHB write logic synchronously
                 if (!(htrans == IDLE || htrans == BUSY)) begin // Ignore IDLE and BUSY transactions
-                    // Check address alignment
-                    if ((haddr[1:0] != 2'b00) && (hsize == WORD)) begin
-                    end
-                    else if ((haddr[0] != 1'b0) && (hsize == HALFWORD))  begin
-                    end
-                    else if ((hsize == BYTE && hwstrb > 4'b0001) ||        // BYTE transfer expects one active strobe
-                        (hsize == HALFWORD && hwstrb > 4'b0011)) begin     // HALFWORD transfer expects two consecutive strobes
-                    end          
-                    else begin
+                    if (!resp_n) begin
                         // Proceed with write operations
                         if (hwrite == WRITE) begin
                             // Write operation based on transfer size and write strobe
                             case(hsize)
                                 BYTE: begin
-                                    if (hwstrb[0]) memory[haddr[29:0]] = hwdata[7:0]; // Store 8 bits at the address
+                                    case(haddr[1:0]) 
+                                        2'b00: if (hwstrb[0]) memory[haddr[29:0]] = hwdata[7:0];
+                                        2'b01: if (hwstrb[1]) memory[haddr[29:0]] = hwdata[7:0];
+                                        2'b10: if (hwstrb[2]) memory[haddr[29:0]] = hwdata[7:0];
+                                        2'b11: if (hwstrb[3]) memory[haddr[29:0]] = hwdata[7:0];
+                                    endcase
                                 end
                                 HALFWORD: begin
-                                    if (hwstrb[0]) memory[haddr[29:0]] = hwdata[7:0]; // Store lower half
-                                    if (hwstrb[1]) memory[haddr[29:0] + 1] = hwdata[15:8]; // Store upper half
+                                    case(haddr[1:0]) 
+                                        2'b00: begin
+                                            if (hwstrb[0]) memory[haddr[29:0]] = hwdata[7:0];
+                                            if (hwstrb[1]) memory[haddr[29:0] + 1] = hwdata[15:8];
+                                        end
+                                        2'b10: begin
+                                            if (hwstrb[2]) memory[haddr[29:0]] = hwdata[7:0];
+                                            if (hwstrb[3]) memory[haddr[29:0] + 1] = hwdata[15:8];
+                                        end
+                                    endcase
                                 end
                                 WORD: begin
                                     if (hwstrb[0]) memory[haddr[29:0]] = hwdata[7:0];   // Store byte 0
@@ -154,39 +159,45 @@ module subordinate (
         ready_n = 1'b1;
         resp_n = 1'b0;
 
-        // Check address alignment
-        if ((haddr[1:0] != 2'b00) && (hsize == WORD)) begin
-            resp_n = 1'b1; // Address not aligned for word transfer
-        end 
-        else if ((haddr[0] != 1'b0) && (hsize == HALFWORD)) begin
-            resp_n = 1'b1; // Address not aligned for halfword transfer
-        end 
-        else if ((hsize == BYTE && hwstrb > 4'b0001) ||        // BYTE transfer expects one active strobe
-            (hsize == HALFWORD && hwstrb > 4'b0011)) begin    // HALFWORD transfer expects two consecutive strobes
-            resp_n = 1'b1; // Signal an error response
-        end
-        else if (hselx) begin
-            if (hwrite == READ) begin // Ignore IDLE and BUSY transactions
-                // Read operation based on transfer size
-                case(hsize)
-                    BYTE: begin
-                        rdata = {24'b0, memory[haddr[29:0]]}; // Read 8 bits
-                    end
-                    HALFWORD: begin
-                        rdata = {16'b0, memory[haddr[29:0] + 1], memory[haddr[29:0]]}; // Read 16 bits
-                    end
-                    WORD: begin
-                        rdata = {memory[haddr[29:0] + 3], memory[haddr[29:0] + 2], memory[haddr[29:0] + 1], memory[haddr[29:0]]}; // Read 32 bits
-                    end
-                    default: begin
-                        rdata = 32'h0; // Invalid size
-                    end
+        if (!(htrans == IDLE || htrans == BUSY)) begin // Ignore IDLE and BUSY transactions
+            // Update resp_n to report errors, if any.
+            if (hsize == 3'b000) begin // BYTE
+                case (haddr[1:0])
+                    2'b00: resp_n = (hwstrb[3:1] == 3'b000) ? 1'b0 : 1'b1;
+                    2'b01: resp_n = (hwstrb[3:2] == 2'b00 && hwstrb[0] == 1'b0) ? 1'b0 : 1'b1;
+                    2'b10: resp_n = (hwstrb[3] == 1'b0 && hwstrb[1:0] == 2'b00) ? 1'b0 : 1'b1;
+                    2'b11: resp_n = (hwstrb[2:0] == 3'b000) ? 1'b0 : 1'b1;
+                    default: resp_n = 1'b1; // Invalid case
                 endcase
-                
-                // Replace 'x' bits in rdata_n with '0'
-                for (int i = 0; i < 32; i++) begin
-                    if (rdata[i] === 1'bx) begin
-                        rdata[i] = 1'b0;
+            end else if (hsize == 3'b001) begin // HALFWORD
+                if (haddr[1:0] == 2'b00) resp_n = (hwstrb[3:2] == 2'b00) ? 1'b0 : 1'b1;
+                else if (haddr[1:0] == 2'b10) resp_n = (hwstrb[1:0] == 2'b00) ? 1'b0 : 1'b1;
+                else resp_n = 1'b1; // Invalid address
+            end 
+            
+            if (!resp_n && hselx) begin
+                if (hwrite == READ) begin // Ignore IDLE and BUSY transactions
+                    // Read operation based on transfer size
+                    case(hsize)
+                        BYTE: begin
+                            rdata = {24'b0, memory[haddr[29:0]]}; // Read 8 bits
+                        end
+                        HALFWORD: begin
+                            rdata = {16'b0, memory[haddr[29:0] + 1], memory[haddr[29:0]]}; // Read 16 bits
+                        end
+                        WORD: begin
+                            rdata = {memory[haddr[29:0] + 3], memory[haddr[29:0] + 2], memory[haddr[29:0] + 1], memory[haddr[29:0]]}; // Read 32 bits
+                        end
+                        default: begin
+                            rdata = 32'h0; // Invalid size
+                        end
+                    endcase
+
+                    // Replace 'x' bits in rdata_n with '0'
+                    for (int i = 0; i < 32; i++) begin
+                        if (rdata[i] === 1'bx) begin
+                            rdata[i] = 1'b0;
+                        end
                     end
                 end
             end
