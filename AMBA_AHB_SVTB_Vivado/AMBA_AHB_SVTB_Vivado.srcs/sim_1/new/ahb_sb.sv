@@ -29,6 +29,7 @@
 //    v1.2: Added HSIZE handling for different transfer sizes (byte, halfword, word)
 //    v1.3: Updated ref_model task to handle write transactions using hwstrb signal
 //    v1.4: Updated scoreboard to handle IDLE and BUSY transfer types
+//    v1.5: Added Burst handling
 //////////////////////////////////////////////////////////////////////////////////
 
 class ahb_sb;
@@ -80,6 +81,8 @@ class ahb_sb;
             if (txn_h.haddr[1:0] == 2'b00) resp = (txn_h.hwstrb[3:2] == 2'b00) ? 1'b0 : 1'b1;
             else if (txn_h.haddr[1:0] == 2'b10) resp = (txn_h.hwstrb[1:0] == 2'b00) ? 1'b0 : 1'b1;
             else resp = 1'b1; // Invalid address
+        end else if (txn_h.htrans == 2'b11 && (txn_h.haddr[29:0] == 30'h0)) begin
+            resp = 1'b1; // Invalid burst transfer
         end
 
         // Proceed with write operations
@@ -129,8 +132,8 @@ class ahb_sb;
     
     // Compare expected and actual data
     task compare();
-        if (txn_h.hreadyout && txn_h.hresp !== resp) begin
-            $error($time, "[SCB-FAIL] Response mismatch! Expected %0b, Got %0b", resp, txn_h.hresp);
+        if (txn_h.hresp || resp) begin
+            $error($time, "[SCB-FAIL] Invalid response found! Expected %0b, Actual %0b, If expected == 0 && actual == 1, please check on address validity in subordinate transactions. Else, please check on hsize, haddr and hwstrb", resp, txn_h.hresp);
         end
 
         // For IDLE and BUSY transfers

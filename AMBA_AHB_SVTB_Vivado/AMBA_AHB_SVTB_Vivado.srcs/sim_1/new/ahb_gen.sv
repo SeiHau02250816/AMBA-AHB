@@ -20,13 +20,16 @@ class ahb_gen;
     int num_txns;
     int consecutive;
     mailbox g2d_mb;
+
+    // Configs
     int transfer_size;
     int write_strobe;
-    int transfer_type;  // Added transfer type configuration
-    bit burst; // Configuration to determine if burst transactions are to be generated
-    int burst_type; // Configuration to determine the type of burst transaction
-    int addr; // Configuration for the starting address of transactions
-    int wdata; // Configuration for the data to be written
+    int transfer_type;      // Added transfer type configuration
+    bit burst;              // Configuration to determine if burst transactions are to be generated
+    int burst_type;         // Configuration to determine the type of burst transaction
+    int addr;               // Configuration for the starting address of transactions
+    int wdata;              // Configuration for the data to be written
+    bit early_end;          // Configuration to determine if burst should end early
 
     // Transaction objects for various transfer types
     ahb_txn write_txn, idle_txn;
@@ -119,6 +122,7 @@ class ahb_gen;
                 if ($sscanf(line, "BURST_TYPE=%d", burst_type) == 1) continue;
                 if ($sscanf(line, "ADDRESS=%d", addr) == 1) continue;
                 if ($sscanf(line, "DATA=%d", wdata) == 1) continue;
+                if ($sscanf(line, "EARLY_END=%d", early_end) == 1) continue;
             end
             $fclose(file);
         end else begin
@@ -135,6 +139,8 @@ class ahb_gen;
         $display("BURST = %0b", burst);
         $display("BURST_TYPE = %0b", burst_type);
         $display("ADDRESS = %0h", addr);
+        $display("DATA = %0h", wdata);
+        $display("EARLY_END = %0b", early_end);
     endfunction
 
     task gen_single();
@@ -202,81 +208,164 @@ class ahb_gen;
     task gen_burst();
         int num_burst_txns;
         txn_properties props = new();
-        
+        int increment;
+        logic [27:0] upper_bits;
+        logic [3:0] lower_bits;
+        logic [3:0] lower_bits_next;
+        logic [31:0] address;
+        logic [3:0] full_write_strobe;
+
         // Randomize properties
-        assert(props.randomize()) else $fatal(1, "Failed to randomize transaction properties");
+        if (transfer_size != -1)
+            props.randomize() with { props.hsize_value == transfer_size; };
+        else
+            props.randomize() with { props.hsize_value == 3'b010; };
 
         // Overwrite props if configurations are specified
-        if (transfer_size != -1 && write_strobe != -1) begin
-            props.hsize_value = transfer_size[2:0]; // Use transfer_size from config
-            props.hwstrb_value = write_strobe; // Use write_strobe from config
+        if (transfer_type != -1) begin
+            props.htrans_value = transfer_type[1:0];
         end
-        
+
+        if (addr != -1) begin
+            props.haddr_value = addr;
+        end
+
         // Determine number of transactions based on burst_type
         if (burst_type == 0) num_burst_txns = 1; // SINGLE
-        else if (burst_type == 1) num_burst_txns = num_txns; // INCR (use provided num_txns)
-        else if (burst_type == 2 || burst_type == 3) num_burst_txns = 4; // WRAP4 / INCR4
-        else if (burst_type == 4 || burst_type == 5) num_burst_txns = 8; // WRAP8 / INCR8
-        else num_burst_txns = 16; // WRAP16 / INCR16
+        else if (burst_type == 1) num_burst_txns = num_txns; // INCR
+        else if (burst_type == 2 || burst_type == 3) num_burst_txns = 4; // WRAP4
+        else if (burst_type == 4 || burst_type == 5) num_burst_txns = 8; // WRAP8
+        else num_burst_txns = 16; // WRAP16
 
-        // Display the number of burst transactions
-        $display("Number of burst transactions: %0d", num_burst_txns);
+        if (early_end) begin
+            num_burst_txns = 3; // End early
+        end
 
-        // Generate first transaction with NONSEQ
+        // Determine increment based on hsize
+        if (props.hsize_value == 3'b010) increment = 4; // WORD
+        else if (props.hsize_value == 3'b001) increment = 2; // HALFWORD
+        else increment = 1; // BYTE
+
+        // Extract upper and lower bits of the address for WRAP bursts
+        upper_bits = props.haddr_value[31:4];
+        lower_bits = props.haddr_value[3:0];
+
+        // Determine full write strobe based on hsize and address
+        if (props.hsize_value == 3'b010) begin // WORD
+            full_write_strobe = 4'b1111;
+        end
+        else if (props.hsize_value == 3'b001) begin // HALFWORD
+            if (props.haddr_value[1:0] == 2'b00) full_write_strobe = 4'b0011;
+            else if (props.haddr_value[1:0] == 2'b10) full_write_strobe = 4'b1100;
+            else full_write_strobe = 4'b0000; // Invalide case
+        end
+        else begin // BYTE
+            if (props.haddr_value[1:0] == 2'b00) full_write_strobe = 4'b0001;
+            else if (props.haddr_value[1:0] == 2'b01) full_write_strobe = 4'b0010;
+            else if (props.haddr_value[1:0] == 2'b10) full_write_strobe = 4'b0100;
+            else if (props.haddr_value[1:0] == 2'b11) full_write_strobe = 4'b1000;
+            else full_write_strobe = 4'b0000; // Invalide case
+        end
+
+        // Generate first write transaction with NONSEQ
         write_txn = new();
         write_txn.randomize() with {
-            hwrite == 1'b1; // Write transfer
-            haddr == addr; // Start address
-            htrans == 2'b01; // NONSEQ
+            hwrite == 1'b1;
+            haddr == props.haddr_value;
+            htrans == 2'b10; // NONSEQ
             hsize == props.hsize_value;
             hburst == burst_type;
-            hwstrb == props.hwstrb_value;
+            hwstrb == full_write_strobe;
             hprot == props.hprot_value;
         };
         g2d_mb.put(write_txn);
 
         // Generate remaining write transactions
+        lower_bits_next = lower_bits;
         for (int i = 1; i < num_burst_txns; i++) begin
+            if (burst_type % 2 == 0) begin //WRAP types burst
+                lower_bits_next = lower_bits_next + increment;
+                address = {upper_bits, lower_bits_next};
+            end
+            else begin // INCR/SINGLE burst
+                address = props.haddr_value + (i * increment);
+            end
+
+            // Determine full write strobe based on hsize and address
+            if (props.hsize_value == 3'b010) begin // WORD
+                full_write_strobe = 4'b1111;
+            end
+            else if (props.hsize_value == 3'b001) begin // HALFWORD
+                if (address[1:0] == 2'b00) full_write_strobe = 4'b0011;
+                else if (address[1:0] == 2'b10) full_write_strobe = 4'b1100;
+                else full_write_strobe = 4'b0000; // Invalide case
+            end
+            else begin // BYTE
+                if (address[1:0] == 2'b00) full_write_strobe = 4'b0001;
+                else if (address[1:0] == 2'b01) full_write_strobe = 4'b0010;
+                else if (address[1:0] == 2'b10) full_write_strobe = 4'b0100;
+                else if (address[1:0] == 2'b11) full_write_strobe = 4'b1000;
+                else full_write_strobe = 4'b0000; // Invalide case
+            end
+
             write_txn = new();
             write_txn.randomize() with {
-                hwrite == 1'b1; // Write transfer
-                haddr == addr + (i * props.hsize_value); // Increment address
+                hwrite == 1'b1;
+                haddr == address;
                 htrans == 2'b11; // SEQ
                 hsize == props.hsize_value;
                 hburst == burst_type;
-                hwstrb == props.hwstrb_value;
+                hwstrb == full_write_strobe;
                 hprot == props.hprot_value;
             };
             g2d_mb.put(write_txn);
         end
 
-        // Generate first read transaction
-        read_txn = new();
-        read_txn.randomize() with {
-            hwrite == 1'b0; // Read transfer
-            haddr == addr; // Start address
-            htrans == 2'b01; // NONSEQ for first read
-            hsize == props.hsize_value;
-            hburst == burst_type;
-            hprot == props.hprot_value;
-        };
-        g2d_mb.put(read_txn);
-
-        // Generate remaining read transactions
-        for (int i = 1; i < num_burst_txns; i++) begin
+        if (!early_end) begin
+            // Generate first read transaction with NONSEQ
             read_txn = new();
             read_txn.randomize() with {
-                hwrite == 1'b0; // Read transfer
-                haddr == addr + (i * props.hsize_value); // Increment address
-                htrans == 2'b11; // SEQ
+                hwrite == 1'b0;
+                haddr == props.haddr_value;
+                htrans == 2'b10; // NONSEQ
                 hsize == props.hsize_value;
                 hburst == burst_type;
                 hprot == props.hprot_value;
             };
             g2d_mb.put(read_txn);
+
+            // Generate remaining read transactions
+            lower_bits_next = lower_bits;
+            for (int i = 1; i < num_burst_txns; i++) begin
+                if (burst_type % 2 == 0) begin //WRAP types burst
+                    lower_bits_next = lower_bits_next + increment;
+                    address = {upper_bits, lower_bits_next};
+                end
+                else begin // INCR/SINGLE burst
+                    address = props.haddr_value + (i * increment);
+                end
+
+                read_txn = new();
+                read_txn.randomize() with {
+                    hwrite == 1'b0;
+                    haddr == address;
+                    htrans == 2'b11; // SEQ
+                    hsize == props.hsize_value;
+                    hburst == burst_type;
+                    hprot == props.hprot_value;
+                };
+                g2d_mb.put(read_txn);
+            end
         end
+
+        // Send out an idle transaction to properly end the burst
+        idle_txn = new();
+        idle_txn.randomize() with {
+            htrans == 2'b00; // IDLE
+        };
+        g2d_mb.put(idle_txn);
     endtask: gen_burst
-    
+
     // Main generation task
     task gen;
         #30;

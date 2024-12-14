@@ -29,6 +29,15 @@
 `include "tests/txn_types/ahb_idle_transfer_test.sv"
 `include "tests/txn_types/ahb_busy_transfer_test.sv"
 `include "tests/test_reproduce_error.sv"
+`include "tests/burst/ahb_burst_incr_test.sv"
+`include "tests/burst/ahb_burst_incr4_test.sv"
+`include "tests/burst/ahb_burst_incr8_test.sv"
+`include "tests/burst/ahb_burst_incr16_test.sv"
+`include "tests/burst/ahb_burst_wrap4_test.sv"
+`include "tests/burst/ahb_burst_wrap8_test.sv"
+`include "tests/burst/ahb_burst_wrap16_test.sv"
+`include "tests/burst/ahb_burst_edge_byte_test.sv"
+`include "tests/burst/ahb_burst_edge_early_end.sv"
 `include "ahb_gen.sv"
 `include "ahb_mon.sv"
 `include "ahb_sb.sv"
@@ -42,7 +51,16 @@ module ahb_tb_top();
     ahb_halfword_strobe_test test_05_h;
     ahb_idle_transfer_test test_06_h;
     ahb_busy_transfer_test test_07_h; 
-    ahb_multiple_non_consecutive_txns_test test_08_h; 
+    ahb_burst_incr_test test_08_h; 
+    ahb_burst_wrap4_test test_09_h; 
+    ahb_burst_wrap8_test test_10_h;
+    ahb_burst_wrap16_test test_11_h;
+    ahb_burst_incr4_test test_12_h;
+    ahb_burst_incr8_test test_13_h;
+    ahb_burst_incr16_test test_14_h;
+    ahb_burst_edge_byte_test test_15_h;
+    ahb_burst_edge_early_end_test test_16_h;
+    ahb_multiple_non_consecutive_txns_test test_17_h;
     test_reproduce_error reproduce_error_test_h;
 
     logic hclk, hresetn;
@@ -103,12 +121,48 @@ module ahb_tb_top();
 //        test_06_h.main();
 
         // Run the busy transfer test
-//        test_07_h = new(intf);
-//        test_07_h.main();
+        // test_07_h = new(intf);
+        // test_07_h.main();
+
+        // Run the burst increment test
+        // test_08_h = new(intf);
+        // test_08_h.main();
+
+        // Run the burst wrap4 test
+        // test_09_h = new(intf);
+        // test_09_h.main();
+
+        // Run the burst wrap8 test
+        // test_10_h = new(intf);
+        // test_10_h.main();
+
+        // Run the burst wrap16 test
+        // test_11_h = new(intf);
+        // test_11_h.main();
+
+        // Run the burst increment4 test
+        // test_12_h = new(intf);
+        // test_12_h.main();
+
+        // Run the burst increment8 test
+        // test_13_h = new(intf);
+        // test_13_h.main();
+
+        // Run the burst increment16 test
+        // test_14_h = new(intf);
+        // test_14_h.main();
+
+        // Run the burst edge byte test
+        // test_15_h = new(intf);
+        // test_15_h.main();
+
+        // Run the burst edge early end test
+//        test_16_h = new(intf);
+//        test_16_h.main();
 
         // Run the multiple non-consecutive transactions test
-        test_08_h = new(intf);
-        test_08_h.main();
+         test_17_h = new(intf);
+         test_17_h.main();
 
         // Run the reproduce error test
 //        reproduce_error_test_h = new(intf);

@@ -1,63 +1,67 @@
 //////////////////////////////////////////////////////////////////////////////////
 // Engineer: SeiHau Teo
 // 
-// Create Date: 21.11.2024 
-// Design Name: ahb_single_write_single_read_test
-// Module Name: ahb_single_write_single_read_test
+// Create Date: 13.12.2024 
+// Design Name: ahb_burst_incr_test
+// Module Name: ahb_burst_incr_test
 // Project Name: AHB SVTB
 // 
 // Description:
-//    AHB Testbench - Single Write/Single Read Test
-//    - Configures environment for a single write and read transaction
-//    - Creates configuration file with transaction count
+//    AHB Testbench - Burst Increment Test
+//    - Configures environment for burst transactions
 //    - Sets up AHB environment and runs main test sequence
+//    - Tests burst transfers with incrementing addresses
 //
 // Revision:
 //    v1.0 - Initial implementation 
 //////////////////////////////////////////////////////////////////////////////////
 
-class ahb_single_write_single_read_test;
+class ahb_burst_incr_test;
     // Virtual interface for AHB signals
     virtual ahb_intf vintf;
     
     // AHB environment instance
-    ahb_env ahb_env_h;
+    ahb_env ahb_env_b;
 
     // Constructor
     function new(virtual ahb_intf vintf);
         // Store the virtual interface
         this.vintf = vintf;
-
+        
         // Write configuration file
         write_config_file();
-        
+
         // Create AHB environment
-        ahb_env_h = new(this.vintf);
+        ahb_env_b = new(this.vintf);
     endfunction
 
     // Write configuration to file
     function void write_config_file();
         int file;
-        int num_txns = 1;  // Set number of transactions to 1 for single write + single read
-        int transfer_type = 2;  // 2 = NONSEQ transfer
+        int num_txns = 10;  // Set number of transactions for burst
         int transfer_size = 32'b0010;  // Set transfer size to WORD
         int write_strobe = 32'b1111;  // Set write strobe to all bytes
+        int burst_enable = 1; // Enable burst transactions
+        int burst_type = 1; // Set burst type to INCR
+        logic[31:0] addr = 32'b0001_0000; // Set addr to 0x10
 
         file = $fopen("ahb_config.cfg", "w");
         if (file) begin
             $fdisplay(file, "NUM_OF_TXN=%0d", num_txns);
-            $fdisplay(file, "TRANSFER_TYPE=%0d", transfer_type);
             $fdisplay(file, "TRANSFER_SIZE=%0d", transfer_size);
             $fdisplay(file, "WRITE_STROBE=%0d", write_strobe);
+            $fdisplay(file, "BURST=%0d", burst_enable);
+            $fdisplay(file, "BURST_TYPE=%0d", burst_type);
+            $fdisplay(file, "ADDRESS=%0d", addr);
             $fclose(file);
         end else begin
             $error("Error: Could not create configuration file.");
         end
     endfunction
-    
+
     // Main test execution task
     task main;
-        $display("Task main :: ahb_single_write_single_read_test");
-        ahb_env_h.main();
+        $display("Task main :: ahb_burst_incr_test");
+        ahb_env_b.main();
     endtask
 endclass

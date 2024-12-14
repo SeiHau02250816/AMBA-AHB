@@ -38,13 +38,12 @@ class ahb_txn;
         solve hsize before haddr;
 
         // Alignment based on hsize
-        if (hsize == 3'b010) { // WORD transfer
-            haddr[1:0] == 2'b00; // Ensure word alignment
-        } else if (hsize == 3'b001) { // HALFWORD transfer
-            haddr[0] == 1'b0; // Ensure halfword alignment
-        } else { // BYTE transfer
-            // No alignment required for BYTE   
-        }
+        if (hsize == 3'b010) {          // WORD transfer
+            haddr[1:0] == 2'b00;        // Ensure word alignment
+        } else if (hsize == 3'b001) {   // HALFWORD transfer
+            haddr[0] == 1'b0;           // Ensure halfword alignment
+        }                               
+        // No alignment required for BYTE   
 
         // Ensure valid address range
         haddr <= 32'hbfff_ffff;
